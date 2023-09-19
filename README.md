@@ -7,6 +7,7 @@ Language Models API.
 
 The current version supports OpenAI API through the `openai` package.
 
+![](./assets/example-1.png)
 
 ### What we do with this library ?
 
