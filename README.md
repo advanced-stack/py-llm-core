@@ -161,39 +161,6 @@ BookCollection(
 ```
 
 
-## Tokenizer
-
-Tiktoken library is registered as a codec within the Python
-codecs registry :
-
-```python
-import llm_core
-import codecs
-
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-"""
-
-
-# You can encode the text into tokens like that:
-
-tokens = codecs.encode(text, 'gpt-3.5-turbo')
-
-print(tokens)
-[19137, 374, 264, 8198, ... 627]
-
-
-print(len(tokens))
-
-100
-
-```
-
 ## Performing tasks (summary, translations,...)
 
 When a task should be performed by the language model, 
@@ -263,31 +230,6 @@ SummaryWithInsights(
         "The series has had a significant cultural impact and has won several awards.",
     ],
 )
-
-
-```
-
-
-## Chunking and splitting
-
-```python
-from llm_core.splitters import TokenSplitter
-
-
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-"""
-
-
-splitter = TokenSplitter(chunk_size=50, chunk_overlap=0)
-
-for chunk in splitter.chunkify(text):
-    print(chunk)
 
 
 ```
@@ -454,5 +396,61 @@ DenserSummaryCollection(
 ```
 
 
+## Tokenizer
 
+Tiktoken library is registered as a codec within the Python
+codecs registry :
+
+```python
+import llm_core
+import codecs
+
+text = """Foundation is a science fiction novel by American writer
+Isaac Asimov. It is the first published in his Foundation Trilogy (later
+expanded into the Foundation series). Foundation is a cycle of five
+interrelated short stories, first published as a single book by Gnome Press
+in 1951. Collectively they tell the early story of the Foundation,
+an institute founded by psychohistorian Hari Seldon to preserve the best
+of galactic civilization after the collapse of the Galactic Empire.
+"""
+
+
+# You can encode the text into tokens like that:
+
+tokens = codecs.encode(text, 'gpt-3.5-turbo')
+
+print(tokens)
+[19137, 374, 264, 8198, ... 627]
+
+
+print(len(tokens))
+
+100
+
+```
+
+
+## Chunking and splitting
+
+```python
+from llm_core.splitters import TokenSplitter
+
+
+text = """Foundation is a science fiction novel by American writer
+Isaac Asimov. It is the first published in his Foundation Trilogy (later
+expanded into the Foundation series). Foundation is a cycle of five
+interrelated short stories, first published as a single book by Gnome Press
+in 1951. Collectively they tell the early story of the Foundation,
+an institute founded by psychohistorian Hari Seldon to preserve the best
+of galactic civilization after the collapse of the Galactic Empire.
+"""
+
+
+splitter = TokenSplitter(chunk_size=50, chunk_overlap=0)
+
+for chunk in splitter.chunkify(text):
+    print(chunk)
+
+
+```
 
