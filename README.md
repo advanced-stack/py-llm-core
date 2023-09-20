@@ -309,7 +309,7 @@ class DenserSummaryCollection:
     > Remember to use the exact same number of words for each summary.
     Answer in JSON.
 
-    > The JSON in `summaries_per_step` should be a list (length 5) of
+    > The JSON in `summaries` should be a list (length 5) of
     dictionaries whose keys are "missing_entities" and "denser_summary".
 
     """
