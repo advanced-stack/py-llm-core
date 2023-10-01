@@ -161,6 +161,21 @@ BookCollection(
 ```
 
 
+## Question answering with Chain of Verification
+
+
+```python
+>>> from llm_core.assistants import COVQuestionAnswering
+>>> cov_qa = COVQuestionAnswering.ask(
+...     question="Name some politicians who were born in NY, New York"
+... )
+>>> print(cov_qa.revised_answer)
+
+Some politicians who were born in NY, New York include Donald Trump,
+Franklin D. Roosevelt, Theodore Roosevelt, and Andrew Cuomo.
+```
+
+
 ## Performing tasks (summary, translations,...)
 
 When a task should be performed by the language model, 

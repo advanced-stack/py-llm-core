@@ -3,7 +3,7 @@ import json
 import codecs
 import openai
 
-from .core import BaseParser
+from ..core import BaseParser
 
 
 class OpenAIAssistant(BaseParser):
