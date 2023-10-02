@@ -5,16 +5,18 @@
 PyLLMCore provides a light-weighted structured interface with Large
 Language Models API.
 
+Use cases with examples are described :
+
+- parse unstructured text and obtain Python objects (a populated dataclass)
+- summarize and extract information
+- question answering using chain of verification (CoVe)
+- describe arbitrary tasks for the LLM to perform (translation, ...)
+
+
 The current version supports OpenAI API through the `openai` package.
 
 ![](./assets/example-1.png)
 
-### What we do with this library ?
-
-Use cases with examples are described hereunder, but basically you can :
-
-- parse unstructured text and obtain Python objects (a populated dataclass)
-- describe tasks for the LLM to perform (summarization, translation, ...)
 
 ### How to install
 
@@ -25,7 +27,6 @@ pip install py-llm-core
 export OPENAI_API_KEY=sk-<replace with your actual api key>
 
 ```
-
 
 ## Use cases
 
