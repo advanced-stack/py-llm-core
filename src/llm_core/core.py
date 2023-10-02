@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import dirtyjson
 
-from .schema import to_json_schema, from_dict
+from .schema import to_json_schema, to_grammar, from_dict
 
 
 class BaseParser:
@@ -13,6 +13,7 @@ class BaseParser:
             "description": "Publish the answer",
             "parameters": parameters,
         }
+        self.grammar = to_grammar(parameters)
 
     def parse(self, text: str):
         raise NotImplementedError
