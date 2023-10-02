@@ -109,10 +109,9 @@ with OpenAIParser(BookCollection, model='gpt-3.5-turbo-16k') as parser:
     book_collection = parser.parse(text)
     print(book_collection)
 
+```
 
-# The results are :
-
-
+```python
 BookCollection(
     books=[
         Book(
@@ -121,36 +120,8 @@ BookCollection(
             author="Isaac Asimov",
             published_year=1951,
         ),
-        Book(
-            title="Foundation and Empire",
-            summary="The second book in the Foundation series. It explores the conflict between the Foundation and the declining Galactic Empire, as well as the rise of a powerful mutant known as the Mule.",
-            author="Isaac Asimov",
-            published_year=1952,
-        ),
-        Book(
-            title="Second Foundation",
-            summary="The third book in the Foundation series. It reveals the existence of the Second Foundation, a secret organization with psychic abilities, and their efforts to guide the course of history.",
-            author="Isaac Asimov",
-            published_year=1953,
-        ),
-        Book(
-            title="Foundation's Edge",
-            summary="The fourth book in the Foundation series. It takes place 500 years after the establishment of the Foundation and follows Golan Trevize as he searches for the mythical planet Earth.",
-            author="Isaac Asimov",
-            published_year=1982,
-        ),
-        Book(
-            title="Foundation and Earth",
-            summary="The fifth book in the Foundation series. It continues the search for Earth and explores the merging of R. Daneel Olivaw's mind with a human child's intellect.",
-            author="Isaac Asimov",
-            published_year=1986,
-        ),
-        Book(
-            title="Prelude to Foundation",
-            summary="A prequel to the Foundation series. It follows Hari Seldon as he develops the theory of psychohistory and faces various challenges on the planet Trantor.",
-            author="Isaac Asimov",
-            published_year=1988,
-        ),
+        ...
+        
         Book(
             title="Forward the Foundation",
             summary="The final book in the Foundation series. It takes place eight years after Prelude to Foundation and explores Hari Seldon's final years as he works to establish the Second Foundation.",
@@ -177,7 +148,7 @@ Franklin D. Roosevelt, Theodore Roosevelt, and Andrew Cuomo.
 ```
 
 
-## Performing tasks (summary, translations,...)
+## Performing arbitrary tasks (summary, translations,...)
 
 When a task should be performed by the language model, 
 we add an explicit prompt (and system_prompt) to the desired structure.
@@ -224,8 +195,9 @@ text = wikipedia.page("Foundation from Isaac Asimov").content
 response = SummaryWithInsights.summarize(text)
 
 print(response)
+```
 
-# prints the following
+```python
 
 SummaryWithInsights(
     summary="""The Foundation series is a science fiction book series written 
@@ -246,7 +218,6 @@ SummaryWithInsights(
         "The series has had a significant cultural impact and has won several awards.",
     ],
 )
-
 
 ```
 
@@ -346,6 +317,9 @@ text = wikipedia.page("Foundation from Isaac Asimov").content
 response = DenserSummaryCollection.summarize(text)
 print(response)
 
+```
+
+```python
 
 DenserSummaryCollection(
     summaries=[
@@ -360,39 +334,9 @@ DenserSummaryCollection(
             mathematics of sociology.""",
             missing_entities=["Isaac Asimov", "Hari Seldon", "psychohistory"],
         ),
-        DenseSummary(
-            denser_summary="""Isaac Asimov's Foundation series, initially a
-            trilogy, explores the concept of psychohistory, a mathematical
-            sociology developed by Hari Seldon. In the waning days of a future
-            Galactic Empire, Seldon predicts its fall and a subsequent
-            Dark Age. He devises a plan to limit this interregnum to a thousand
-            years, rather than the foreseen 30,000. The series was later
-            expanded with two sequels and two prequels.""",
-            missing_entities=["Galactic Empire", "Dark Age", "interregnum"],
-        ),
-        DenseSummary(
-            denser_summary="""Isaac Asimov's Foundation series, set in a future
-            Galactic Empire's decline, introduces Hari Seldon's psychohistory,
-            predicting the Empire's fall and a 30,000-year Dark Age. Seldon's
-            plan aims to limit this interregnum to a thousand years. The
-            series, initially a trilogy, was expanded with two sequels and two
-            prequels. The original stories were inspired by Edward Gibbon's
-            History of the Decline and Fall of the Roman Empire.""",
-            missing_entities=[
-                "Edward Gibbon's History of the Decline and Fall of the Roman Empire"
-            ],
-        ),
-        DenseSummary(
-            denser_summary="""Isaac Asimov's Foundation series, inspired by
-            Edward Gibbon's History of the Decline and Fall of the Roman
-            Empire, explores Hari Seldon's psychohistory predicting the fall of
-            a future Galactic Empire and a 30,000-year Dark Age. Seldon's plan
-            aims to limit this interregnum to a thousand years. The series,
-            initially a trilogy, was expanded with two sequels and two
-            prequels. The plot follows the series' in-universe chronology,
-            not the order of publication.""",
-            missing_entities=["in-universe chronology"],
-        ),
+        
+        ...
+
         DenseSummary(
             denser_summary="""Isaac Asimov's Foundation series, inspired by
             Edward Gibbon's History of the Decline and Fall of the Roman
@@ -466,7 +410,6 @@ splitter = TokenSplitter(chunk_size=50, chunk_overlap=0)
 
 for chunk in splitter.chunkify(text):
     print(chunk)
-
 
 ```
 
