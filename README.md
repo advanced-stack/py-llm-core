@@ -7,9 +7,10 @@ Language Models API.
 
 Use cases with examples are described :
 
+- Question answering using [Chain of Verification](https://arxiv.org/abs/2309.11495)
+- Summarize using the [Chain of Density prompting](https://arxiv.org/abs/2309.04269)
 - parse unstructured text and obtain Python objects (a populated dataclass)
-- summarize and extract information
-- question answering using chain of verification (CoVe)
+- extract information
 - describe arbitrary tasks for the LLM to perform (translation, ...)
 
 
@@ -17,6 +18,11 @@ The current version supports OpenAI API through the `openai` package.
 
 ![](./assets/example-1.png)
 
+## Changelog
+
+- 1.2.0: Chain of density prompting implemented
+- 1.1.0: Chain of Verification implemented
+- 1.0.0: Initial version
 
 ### How to install
 
@@ -29,6 +35,69 @@ export OPENAI_API_KEY=sk-<replace with your actual api key>
 ```
 
 ## Use cases
+
+## Question answering with Chain of Verification
+
+The following example implements the technique from the paper [Chain-of-Verification Reduces Hallucination in Large Language Models](https://arxiv.org/abs/2309.11495) from Shehzaad Dhuliawala et al. (2023)
+
+```python
+>>> from llm_core.assistants import COVQuestionAnswering
+>>> cov_qa = COVQuestionAnswering.ask(
+...     question="Name some politicians who were born in NY, New York"
+... )
+>>> print(cov_qa.revised_answer)
+
+Some politicians who were born in NY, New York include Donald Trump,
+Franklin D. Roosevelt, Theodore Roosevelt, and Andrew Cuomo.
+```
+
+## Summarizing with Chain of Density Prompting
+
+The following example implements the technique from the paper [From Sparse to Dense: GPT-4 Summarization with Chain of Density Prompting](https://arxiv.org/abs/2309.04269) from Adams et al. (2023).
+
+
+```python
+>>> from llm_core.assistants import DenserSummaryCollection
+>>> import wikipedia
+>>> text = wikipedia.page("Foundation from Isaac Asimov").content
+>>> summary_collection = DenserSummaryCollection.summarize(text)
+>>> print(summary_collection)
+```
+
+```python
+DenserSummaryCollection(
+    summaries=[
+        DenseSummary(
+            denser_summary="""This article discusses the Foundation series, a
+            science fiction book series written by American author Isaac Asimov.
+            The series was first published as a series of short stories and
+            novellas in 1942–50, and subsequently in three collections in
+            1951–53. The premise of the stories is that in the waning days of
+            a future Galactic Empire, the mathematician Hari Seldon spends his
+            life developing a theory of psychohistory, a new and effective
+            mathematics of sociology.""",
+            missing_entities=["Isaac Asimov", "Hari Seldon", "psychohistory"],
+        ),
+
+        ...
+
+        DenseSummary(
+            denser_summary="""Isaac Asimov's Foundation series, inspired by
+            Edward Gibbon's History of the Decline and Fall of the Roman
+            Empire, explores Hari Seldon's psychohistory predicting the fall of
+            a future Galactic Empire and a 30,000-year Dark Age. Seldon's plan
+            aims to limit this interregnum to a thousand years. The series,
+            initially a trilogy, was expanded with two sequels and two
+            prequels. The plot follows the series' in-universe chronology, not
+            the order of publication, and won the one-time Hugo Award for
+            'Best All-Time Series' in 1966.""",
+            missing_entities=["Hugo Award for 'Best All-Time Series'"],
+        ),
+    ]
+)
+
+```
+
 
 ### Parsing
 
@@ -62,9 +131,9 @@ of galactic civilization after the collapse of the Galactic Empire.
 with OpenAIParser(Book) as parser:
     book = parser.parse(text)
     print(book)
+```
 
-# The results are :
-
+```python
 Book(
     title='Foundation',
     summary="""Foundation is a cycle of five interrelated
@@ -84,7 +153,7 @@ same class.
 
 ```python
 from typing import List
-import wikipedia  # Run `make test-setup` to install wikipedia package
+import wikipedia
 from dataclasses import dataclass
 from llm_core.parsers import OpenAIParser
 
@@ -133,19 +202,6 @@ BookCollection(
 ```
 
 
-## Question answering with Chain of Verification
-
-
-```python
->>> from llm_core.assistants import COVQuestionAnswering
->>> cov_qa = COVQuestionAnswering.ask(
-...     question="Name some politicians who were born in NY, New York"
-... )
->>> print(cov_qa.revised_answer)
-
-Some politicians who were born in NY, New York include Donald Trump,
-Franklin D. Roosevelt, Theodore Roosevelt, and Andrew Cuomo.
-```
 
 
 ## Performing arbitrary tasks (summary, translations,...)
@@ -221,139 +277,6 @@ SummaryWithInsights(
 
 ```
 
-## Summarizing with Chain of Density Prompting
-
-The following example implements the technique from the paper 
-"From Sparse to Dense: GPT-4 Summarization with Chain of Density Prompting", Adams et al. (2023).
-
-```python
-from typing import List
-from dataclasses import dataclass
-from llm_core.assistants import OpenAIAssistant
-
-
-@dataclass
-class DenseSummary:
-    denser_summary: str
-    missing_entities: List[str]
-
-
-@dataclass
-class DenserSummaryCollection:
-    system_prompt = """
-    You are an expert in writing rich and dense summaries in broad domains.
-    """
-
-    prompt = """
-    Article:
-    
-    {article}
-
-    ----
-
-    You will generate increasingly concise, entity-dense summaries of the above
-    Article.
-
-    Repeat the following 2 steps 5 times.
-
-    - Step 1: Identify 1-3 informative Entities from the Article
-    which are missing from the previously generated summary and are the most
-    relevant.
-
-    - Step 2: Write a new, denser summary of identical length which covers
-    every entity and detail from the previous summary plus the missing entities
-
-    A Missing Entity is:
-
-    - Relevant: to the main story
-    - Specific: descriptive yet concise (5 words or fewer)
-    - Novel: not in the previous summary
-    - Faithful: present in the Article
-    - Anywhere: located anywhere in the Article
-
-    Guidelines:
-    - The first summary should be long (4-5 sentences, approx. 80 words) yet
-    highly non-specific, containing little information beyond the entities
-    marked as missing.
-
-    - Use overly verbose language and fillers (e.g. "this article discusses") to
-    reach approx. 80 words.
-
-    - Make every word count: re-write the previous summary to improve flow and
-    make space for additional entities.
-
-    - Make space with fusion, compression, and removal of uninformative phrases
-    like "the article discusses"
-
-    - The summaries should become highly dense and concise yet self-contained,
-    e.g., easily understood without the Article.
-
-    - Missing entities can appear anywhere in the new summary.
-
-    - Never drop entities from the previous summary. If space cannot be made,
-    add fewer new entities.
-
-    > Remember to use the exact same number of words for each summary.
-    Answer in JSON.
-
-    > The JSON in `summaries` should be a list (length 5) of
-    dictionaries whose keys are "missing_entities" and "denser_summary".
-
-    """
-
-    summaries: List[DenseSummary]
-
-
-    @classmethod
-    def summarize(cls, article):
-        with OpenAIAssistant(cls, model='gpt-4') as assistant:
-            return assistant.process(article=article)
-
-
-
-import wikipedia  # Run `make test-setup` to install wikipedia package
-text = wikipedia.page("Foundation from Isaac Asimov").content
-
-response = DenserSummaryCollection.summarize(text)
-print(response)
-
-```
-
-```python
-
-DenserSummaryCollection(
-    summaries=[
-        DenseSummary(
-            denser_summary="""This article discusses the Foundation series, a 
-            science fiction book series written by American author Isaac Asimov.
-            The series was first published as a series of short stories and
-            novellas in 1942–50, and subsequently in three collections in
-            1951–53. The premise of the stories is that in the waning days of
-            a future Galactic Empire, the mathematician Hari Seldon spends his
-            life developing a theory of psychohistory, a new and effective 
-            mathematics of sociology.""",
-            missing_entities=["Isaac Asimov", "Hari Seldon", "psychohistory"],
-        ),
-        
-        ...
-
-        DenseSummary(
-            denser_summary="""Isaac Asimov's Foundation series, inspired by
-            Edward Gibbon's History of the Decline and Fall of the Roman
-            Empire, explores Hari Seldon's psychohistory predicting the fall of
-            a future Galactic Empire and a 30,000-year Dark Age. Seldon's plan
-            aims to limit this interregnum to a thousand years. The series,
-            initially a trilogy, was expanded with two sequels and two
-            prequels. The plot follows the series' in-universe chronology, not
-            the order of publication, and won the one-time Hugo Award for
-            'Best All-Time Series' in 1966.""",
-            missing_entities=["Hugo Award for 'Best All-Time Series'"],
-        ),
-    ]
-)
-
-
-```
 
 
 ## Tokenizer

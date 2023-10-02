@@ -10,7 +10,7 @@ long_description = (here / "README.md").read_text()
 
 setup(
     name="py-llm-core",
-    version="1.1.0",
+    version="1.2.0",
     license="MIT",
     description="PyLLMCore provides a light-weighted interface with LLMs",
     long_description=long_description,
