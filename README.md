@@ -101,6 +101,54 @@ DenserSummaryCollection(
 
 ### Parsing
 
+#### Using llama.cpp grammar and bindings
+
+In the example we use a quantized version of the Mistral AI model. You can download the model weights on [Hugging Face](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/)
+
+```python
+from dataclasses import dataclass
+from llm_core.parsers import LLamaParser
+
+@dataclass
+class Book:
+    title: str
+    summary: str
+    author: str
+    published_year: int
+
+text = """Foundation is a science fiction novel by American writer
+Isaac Asimov. It is the first published in his Foundation Trilogy (later
+expanded into the Foundation series). Foundation is a cycle of five
+interrelated short stories, first published as a single book by Gnome Press
+in 1951. Collectively they tell the early story of the Foundation,
+an institute founded by psychohistorian Hari Seldon to preserve the best
+of galactic civilization after the collapse of the Galactic Empire.
+"""
+
+
+with LLamaParser(Book, model_path="mistral-7b-instruct-v0.1.Q4_K_M.gguf") as parser:
+    book = parser.parse(text)
+    print(book)
+```
+
+```python
+Book(
+    title='Foundation',
+    summary="""Foundation is a science fiction novel by American writer
+        Isaac Asimov. It is the first published in his Foundation Trilogy
+        (later expanded into the Foundation series). Foundation is a
+        cycle of five interrelated short stories, first published as a
+        single book by Gnome Press in 1951. Collectively they tell the
+        early story of the Foundation, an institute founded by 
+        psychohistorian Hari Seldon to preserve the best of galactic
+        civilization after the collapse of the Galactic Empire.""",
+    author='Isaac Asimov',
+    published_year=1951
+)
+```
+
+#### Using OpenAI functions
+
 When given unstructured content, LLMs are powerful enough to extract information and produce structured content.
 
 We use a dataclass as a light-weighted structure to hold parsed data.
@@ -205,6 +253,8 @@ BookCollection(
 
 
 ## Performing arbitrary tasks (summary, translations,...)
+
+### Example : Summary + fact extraction
 
 When a task should be performed by the language model, 
 we add an explicit prompt (and system_prompt) to the desired structure.

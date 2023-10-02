@@ -2,6 +2,7 @@
 import json
 import codecs
 import openai
+import llama_cpp
 
 from .core import BaseParser
 
@@ -67,4 +68,31 @@ class OpenAIParser(BaseParser):
 
         instance = self.deserialize(response)
 
+        return instance
+
+
+class LLamaParser(BaseParser):
+    def __init__(
+        self, target_cls, model_path, llama_cpp_kwargs=None, *args, **kwargs
+    ):
+        super().__init__(target_cls, *args, **kwargs)
+
+        if llama_cpp_kwargs is None:
+            llama_cpp_kwargs = {
+                "n_ctx": 4096,
+                "verbose": False,
+            }
+        self.model = llama_cpp.Llama(model_path, **llama_cpp_kwargs)
+
+    def parse(self, text):
+        completion = self.model(
+            text,
+            temperature=0.1,
+            mirostat_mode=2,
+            max_tokens=2048,  #: TODO: Compute prompt size and adapt max token
+            grammar=self.grammar,
+        )
+
+        response = completion["choices"][0]["text"]
+        instance = self.deserialize(response)
         return instance
