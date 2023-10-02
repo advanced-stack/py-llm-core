@@ -16,7 +16,7 @@ Use cases with examples are described :
 
 The current version supports OpenAI API through the `openai` package.
 
-![](./assets/example-1.png)
+![](./assets/example-cove.jpg)
 
 ## Changelog
 
