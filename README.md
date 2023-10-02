@@ -14,14 +14,15 @@ Use cases with examples are described :
 - describe arbitrary tasks for the LLM to perform (translation, ...)
 
 
-The current version supports OpenAI API through the `openai` package.
+The latest version supports OpenAI, LLaMA and Mistral AI models.
 
 ![](./assets/example-cove.jpg)
 
 ## Changelog
 
-- 1.2.0: Chain of density prompting implemented
-- 1.1.0: Chain of Verification implemented
+- 1.3.0: Support for LLaMA based models (llama, llama2, Mistral Instruct)
+- 1.2.0: Chain of density prompting implemented with OpenAI
+- 1.1.0: Chain of Verification implemented with OpenAI
 - 1.0.0: Initial version
 
 ### How to install
