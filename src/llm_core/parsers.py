@@ -79,17 +79,21 @@ class LLamaParser(BaseParser):
 
         if llama_cpp_kwargs is None:
             llama_cpp_kwargs = {
-                "n_ctx": 4096,
+                "n_ctx": 8000,
+                "n_gpu_layers": 33,
                 "verbose": False,
             }
         self.model = llama_cpp.Llama(model_path, **llama_cpp_kwargs)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del self.model
 
     def parse(self, text):
         completion = self.model(
             text,
             temperature=0.1,
             mirostat_mode=2,
-            max_tokens=2048,  #: TODO: Compute prompt size and adapt max token
+            max_tokens=8000,  #: TODO: Compute prompt size and adapt max token
             grammar=self.grammar,
         )
 

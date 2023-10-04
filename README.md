@@ -20,6 +20,7 @@ The latest version supports OpenAI, LLaMA and Mistral AI models.
 
 ## Changelog
 
+- 1.4.0: Free up resources in LLamaParser when exiting the context manager
 - 1.3.0: Support for LLaMA based models (llama, llama2, Mistral Instruct)
 - 1.2.0: Chain of density prompting implemented with OpenAI
 - 1.1.0: Chain of Verification implemented with OpenAI
