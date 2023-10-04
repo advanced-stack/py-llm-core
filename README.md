@@ -36,6 +36,16 @@ export OPENAI_API_KEY=sk-<replace with your actual api key>
 
 ```
 
+### Troubleshooting
+
+The `llama-cpp-python` dependency may improperly detects the architecture and raise an error `an incompatible architecture (have 'x86_64', need 'arm64'))`.
+
+If that's the case, run the following in your virtual env:
+
+```shell
+CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64" pip3 install --upgrade --verbose --force-reinstall --no-cache-dir llama-cpp-python
+```
+
 ## Use cases
 
 ## Question answering with Chain of Verification
