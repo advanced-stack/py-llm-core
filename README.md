@@ -1,20 +1,5 @@
 # PyLLMCore
 
-## Why you shouldn't use PyLLMCore
-
-- You need a lot of external integrations: Take a look at [langchain](https://github.com/langchain-ai/langchain)
-- You need tremendous performance: Take a look at [vllm](https://github.com/vllm-project/vllm)
-- You don't need OpenAI: Take a look a [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) (which is integrated in PyLLMCore)
-- You use Pydantic and don't use the dataclasses module
-
-## Main benefits of using PyLLMCore
-
-- Pythonic API
-- Simple to use
-- You need structures *everywhere* (provided by the standard library `dataclasses` module)
-- High-level API with the `assistants` module
-- Switching between models has never been easier
-
 ## Overview
 
 PyLLMCore is a light-weighted structured interface with Large Language Models 
@@ -25,6 +10,22 @@ The design decisions behind PyLLMCore are:
 - Sane defaults
 - Clear abstractions and terminology
 - Out of the box utility classes
+
+## Main benefits of using PyLLMCore
+
+- Pythonic API
+- Simple to use
+- You need structures *everywhere* (provided by the standard library `dataclasses` module)
+- High-level API with the `assistants` module
+- Switching between models has never been easier
+
+## Why you shouldn't use PyLLMCore
+
+- You need a lot of external integrations: Take a look at [langchain](https://github.com/langchain-ai/langchain)
+- You need tremendous performance: Take a look at [vllm](https://github.com/vllm-project/vllm)
+- You don't need OpenAI: Take a look a [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) (which is integrated in PyLLMCore)
+- You use Pydantic and don't use the dataclasses module
+
 
 ## Models supported
 
@@ -62,10 +63,9 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 ## Changelog
 
 - 2.0.0: 
-    + Refactoring
-    + Renamed `LLamaParser` into `LLaMACPPParser`
+    + Refactored code
     + Dynamically enable GPU offloading on MacOS
-    + Added configuration option for storing local models
+    + Added configuration option for storing local models (MODELS_CACHE_DIR)
     + Updated documentation
 
 - 1.4.0: Free up resources in LLamaParser when exiting the context manager
@@ -203,6 +203,8 @@ Book(
 
 ### Perform advanced tasks
 
+#### Overview
+
 To perform generic tasks, you will use the `assistants` module that provides generic assistants:
 
 - `assistants.OpenAIAssistant`
@@ -214,6 +216,50 @@ Using these assistants, you can take a look at how the utilities are built:
 - `assistants.verifiers.Doubter`
 - `assistants.verifiers.ConsistencyVerifier`
 - `assistants.summarizers.Summarizer`
+
+
+#### Create your own utility
+
+There are 3 items required to build and run a utility:
+
+- A language model (any compatible model)
+- An assistant class: This is where your logic is written
+- A results class: This is the structure you need. It also contains the prompt.
+
+Here is an example where `Recipe` is the results class. We'll use the 
+Mistral AI Instruct model.
+
+```python
+from typing import List
+from dataclasses import dataclass
+
+# LLaMACPPAssistant is needed to instanciate Mistral Instruct
+from llm_core.assistants import LLaMACPPAssistant
+
+# Make sure that ~/.cache/py-llm-core/models contains the following file
+model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
+
+@dataclass
+class Recipe:
+    system_prompt = "You are a world-class chef"
+    prompt = "Write a step-by-step recipe to make {dish}"
+
+    title: str
+    steps: List[str]
+    ingredients: List[str]
+
+
+class Chef:
+    def generate_recipe(self, dish):
+        with LLaMACPPAssistant(Recipe, model=model) as assistant:
+            recipe = assistant.process(dish=dish)
+            return recipe
+
+chef = Chef()
+recipe = chef.generate_recipe("Boeuf bourguignon")
+print(recipe)
+
+```
 
 #### Summarizing
 
@@ -236,6 +282,18 @@ partial_summary = summarizer.fast_summarize(text)
 for summary in summarizer.summarize(text):
     print(summary)
 
+```
+
+The partial summary generated is:
+
+```python
+SimpleSummary(
+    content="""The Foundation series is a science fiction book series written
+        by Isaac Asimov. It was first published as a series of short stories and
+        novellas in 1942-50, and subsequently in three collections in 1951-53.
+        ...
+    """
+)
 ```
 
 #### Reduce hallucinations using the verifiers module
@@ -332,7 +390,7 @@ AnswerConsistency(is_consistent=True, is_inferred_from_context=True)
 
 ```
 
-From there, you can further process the overall answer to remove any hallucinations.
+From there, you can further process answers to remove any hallucinations or inconsistencies.
 
 
 #### Using the assistants module
@@ -380,7 +438,7 @@ Recommendation(
 
 ## Tokenizer
 
-Tiktoken library is registered as a codec within the Python
+Tokenizers are registered as a codecs within the Python
 codecs registry :
 
 ```python
@@ -399,7 +457,9 @@ of galactic civilization after the collapse of the Galactic Empire.
 
 # You can encode the text into tokens like that:
 
-tokens = codecs.encode(text, 'gpt-3.5-turbo')
+
+# tokens = codecs.encode(text, 'gpt-3.5-turbo')
+tokens = codecs.encode(text, 'mistral-7b-instruct-v0.1.Q4_K_M.gguf')
 
 print(tokens)
 [19137, 374, 264, 8198, ... 627]
