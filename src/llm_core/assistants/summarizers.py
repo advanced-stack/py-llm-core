@@ -106,7 +106,7 @@ class Summarizer:
         ) as assistant:
             splitter = TokenSplitter(
                 model=assistant.model_name,
-                chunk_size=int(assistant.ctx_size * 0.5),
+                chunk_size=int(assistant.ctx_size * 0.6),
                 chunk_overlap=int(assistant.ctx_size * 0.05),
             )
             chunk = next(splitter.chunkify(content))
@@ -119,7 +119,7 @@ class Summarizer:
         ) as assistant:
             splitter = TokenSplitter(
                 model=assistant.model_name,
-                chunk_size=int(assistant.ctx_size * 0.5),
+                chunk_size=int(assistant.ctx_size * 0.6),
                 chunk_overlap=int(assistant.ctx_size * 0.05),
             )
             for chunk in splitter.chunkify(content):

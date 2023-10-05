@@ -25,7 +25,7 @@ class LLaMACPPModel(LLMBase):
 
     name: str = "mistral"
     system_prompt: str = "You are a helpful assistant"
-    ctx_size: int = 8000
+    ctx_size: int = 4000
     verbose: bool = False
     llama_cpp_kwargs: dict = None
 
@@ -49,6 +49,7 @@ class LLaMACPPModel(LLMBase):
             if platform.system() == "Darwin" and platform.machine() == "arm64":
                 # Offload everything onto the GPU on MacOS
                 self.llama_cpp_kwargs["n_gpu_layers"] = 1000
+                self.llama_cpp_kwargs["n_threads"] = 4
 
         model_path = os.path.join(MODELS_CACHE_DIR, self.name)
         self.model = llama_cpp.Llama(model_path, **self.llama_cpp_kwargs)

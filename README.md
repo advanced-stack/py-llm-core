@@ -1,5 +1,20 @@
 # PyLLMCore
 
+## Why you shouldn't use PyLLMCore
+
+- You need a lot of external integrations: Take a look at [langchain](https://github.com/langchain-ai/langchain)
+- You need tremendous performance: Take a look at [vllm](https://github.com/vllm-project/vllm)
+- You don't need OpenAI: Take a look a [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) (which is integrated in PyLLMCore)
+- You use Pydantic and don't use the dataclasses module
+
+## Main benefits of using PyLLMCore
+
+- Pythonic API
+- Simple to use
+- You need structures *everywhere* (provided by the standard library `dataclasses` module)
+- High-level API with the `assistants` module
+- Switching between models has never been easier
+
 ## Overview
 
 PyLLMCore is a light-weighted structured interface with Large Language Models 
@@ -7,8 +22,7 @@ with native support for [llama.cpp](http://github.com/ggerganov/llama.cpp) and O
 
 The design decisions behind PyLLMCore are:
 
-- Pythonic internal API
-- Sane defaults all the way
+- Sane defaults
 - Clear abstractions and terminology
 - Out of the box utility classes
 
@@ -47,11 +61,12 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
-- 1.5.0: 
+- 2.0.0: 
     + Refactoring
     + Renamed `LLamaParser` into `LLaMACPPParser`
     + Dynamically enable GPU offloading on MacOS
     + Added configuration option for storing local models
+    + Updated documentation
 
 - 1.4.0: Free up resources in LLamaParser when exiting the context manager
 - 1.3.0: Support for LLaMA based models (llama, llama2, Mistral Instruct)
@@ -88,7 +103,6 @@ CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64" pip3 install --upgrade --verbose --
 
 
 ## Documentation
-
 
 ### Parsing
 
@@ -187,13 +201,19 @@ Book(
 ```
 
 
-### Perform tasks
+### Perform advanced tasks
 
 To perform generic tasks, you will use the `assistants` module that provides generic assistants:
 
 - `assistants.OpenAIAssistant`
 - `assistants.LLaMACPPAssistant`
 
+Using these assistants, you can take a look at how the utilities are built:
+
+- `assistants.analysts.Analyst`
+- `assistants.verifiers.Doubter`
+- `assistants.verifiers.ConsistencyVerifier`
+- `assistants.summarizers.Summarizer`
 
 #### Summarizing
 
@@ -218,7 +238,7 @@ for summary in summarizer.summarize(text):
 
 ```
 
-#### Reduce hallucinations using verifiers
+#### Reduce hallucinations using the verifiers module
 
 This example implements loosely the Chain of Verification (CoVe).
 
@@ -227,72 +247,93 @@ as a starting point:
 
 ```python
 import requests
-from llm_core.assistants import Analyst, Doubter, ConsistencyVerifier, LLaMACPPAssistant
-
-
-context = requests.get("https://raw.githubusercontent.com/hendricius/pizza-dough/main/README.md").text
-
-# Analyst answer questions
-analyst = Analyst(
-    model="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-    assistant_cls=LLaMACPPAssistant,
+from llm_core.splitters import TokenSplitter
+from llm_core.assistants import (
+    Analyst,
+    Doubter,
+    ConsistencyVerifier,
+    LLaMACPPAssistant,
 )
 
-instructions = "Write a recipe to make a margherita pizza"
-
-analyst_response = analyst.ask(instructions, context)
-
-# Doubter provides with verification questions when a previous completion
-# has been done
-doubter = Doubter(
-    model="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-    assistant_cls=LLaMACPPAssistant,
+pizza_dough_recipe_url = (
+    "https://raw.githubusercontent.com/hendricius/pizza-dough/main/README.md"
 )
 
-question_collection = doubter.verify(
-    '\n'.join((context, instructions)),
-    analyst_response.content,
-    n_questions=5
-)
-print(question_collection)
-```
+model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
+assistant_cls = LLaMACPPAssistant
 
-```python
-QuestionCollection(
-    questions=[
-        'Is the weight of the flour specified in grams or percentages?',
-        'What is the recommended temperature for the oven?',
-        'How long should the dough be left to rest before shaping it into a pizza?',
-        'What type of yeast should be used (dry or fresh)?',
-        'Do you need to proof the dough before using it to make a pizza?'
-    ]
-)
-```
+# Utilities
+analyst = Analyst(model, assistant_cls)
+doubter = Doubter(model, assistant_cls)
+verifier = ConsistencyVerifier(model, assistant_cls)
 
-Then answer individual questions with the Analyst:
+# Fetch some content 
+splitter = TokenSplitter(model=model, chunk_size=3_000)
+pizza_dough_recipe = requests.get(pizza_dough_recipe_url).text
+context = splitter.first_extract(pizza_dough_recipe)
 
-```python
-# You can even segregate models between analyst vs verifier to improve reliability
-verifier = ConsistencyVerifier(
-    model="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-    assistant_cls=LLaMACPPAssistant,
-)
 
-template = """Q:{}
-A:{}
-Consistent:{}"""
+query = "Write 3 advices when making pizza dough."
 
-for response in analyst.batch_ask(question_collection.questions, context=context):
-    answer_consistency = verifier.verify(
-        question=question,
-        context=context,
-        answer=response.content
+analyst_response = analyst.ask(query, context)
+
+question_collection = doubter.verify(query, analyst_response.content)
+questions = question_collection.questions
+
+answers = []
+
+for question in questions:
+    response = analyst.ask(question, context=context)
+    answers.append(response.content)
+
+for question, answer in zip(questions, answers):
+    verifications = verifier.verify(
+        question=question, context=context, answer=response.content
     )
-    print(template.format(question, response.content, answer_consistency.is_consistent))
 
 ```
 
-From there, you can revise the overall answer.
+Here is a summary of what's been printed:
+
+```txt
+> Baseline answer:
+
+When making pizza dough, it is important to choose high-protein flour such as bread or all-purpose flour.
+The dough should be mixed and kneaded for a long time to develop flavor and gluten.
+It is also important to let the dough rest and rise before shaping it into pizza balls.
+
+> Questions
+
+1. Is bread or all-purpose flour a good choice for making pizza dough?
+2. How long should the dough be mixed and kneaded for flavor development and gluten formation?
+3. Should the dough be allowed to rest and rise before shaping it into pizza balls?
+4. What is the purpose of mixing and kneading the dough?
+5. Is there a specific step in making pizza dough that can be skipped?
+
+> Consistency checks
+
+1.
+
+Bread or all-purpose flour is a good choice for making pizza dough.
+The rule of thumb is to pick a flour that has high protein content.
+
+AnswerConsistency(is_consistent=True, is_inferred_from_context=True)
+
+
+2.
+
+The dough should be mixed and kneaded for around 5 minutes.
+The mixing process starts the germination of the flour, which develops the flavor of the dough.
+Kneading helps to form the gluten network that gives the dough its elasticity and structure.
+
+AnswerConsistency(is_consistent=True, is_inferred_from_context=True)
+
+...
+
+```
+
+From there, you can further process the overall answer to remove any hallucinations.
+
 
 #### Using the assistants module
 

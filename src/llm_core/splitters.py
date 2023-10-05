@@ -17,6 +17,9 @@ class TokenSplitter:
                 f"Overlap {self.chunk_overlap} > window size {self.chunk_size}"
             )
 
+    def first_extract(self, text: str):
+        return next(self.chunkify(text))
+
     def compute_token_count(self, text: str):
         return len(codecs.encode(text, self.model))
 

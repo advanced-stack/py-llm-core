@@ -30,7 +30,7 @@ class Doubter:
     assistant_cls: type
     results_cls: type = QuestionCollection
 
-    def verify(self, instructions, answer, n_questions=10):
+    def verify(self, instructions, answer, n_questions=5):
         with self.assistant_cls(
             self.results_cls, model=self.model
         ) as assistant:
@@ -44,7 +44,9 @@ class Doubter:
 
 @dataclass
 class AnswerConsistency:
-    system_prompt = "You are a meticulous assistant."
+    system_prompt = (
+        "You are a meticulous assistant checking for inconsistencies"
+    )
 
     prompt = """Context:
     ```
@@ -56,15 +58,17 @@ class AnswerConsistency:
     {question}
     ```
 
-    The provided answer was:
+    The provided Answer was:
     ```
     {answer}
     ```
 
-    Is the answer consistent with the context ?
+    - Does the Answer is consistent ?
+    - Does the Answer is inferred from the Context ?
     """
 
     is_consistent: bool
+    is_inferred_from_context: bool
 
 
 @dataclass
