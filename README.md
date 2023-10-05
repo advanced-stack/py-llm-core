@@ -239,13 +239,19 @@ from llm_core.assistants import LLaMACPPAssistant
 # Make sure that ~/.cache/py-llm-core/models contains the following file
 model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
 
+
+@dataclass
+class RecipeStep:
+    step_title: str
+    step_instructions: str
+
 @dataclass
 class Recipe:
     system_prompt = "You are a world-class chef"
-    prompt = "Write a step-by-step recipe to make {dish}"
+    prompt = "Write a detailed step-by-step recipe to make {dish}"
 
     title: str
-    steps: List[str]
+    steps: List[RecipeStep]
     ingredients: List[str]
 
 
@@ -258,6 +264,56 @@ class Chef:
 chef = Chef()
 recipe = chef.generate_recipe("Boeuf bourguignon")
 print(recipe)
+
+```
+
+```python
+Recipe(
+    title="Boeuf Bourguignon Recipe",
+    steps=[
+        RecipeStep(
+            step_title="Preheat the Oven",
+            step_instructions="Preheat the oven to 350°F.",
+        ),
+        RecipeStep(
+            step_title="Brown the Brisket",
+            step_instructions="In a large pot, heat the olive oil over me...",
+        ),
+        RecipeStep(
+            step_title="Cook the Onions and Garlic",
+            step_instructions="Remove the brisket from the pot and set it...",
+        ),
+        RecipeStep(
+            step_title="Simmer the Wine",
+            step_instructions="Add the red wine to the pot and stir to sc...",
+        ),
+        RecipeStep(
+            step_title="Bake in the Oven",
+            step_instructions="Return the brisket to the pot, along with ...",
+        ),
+        RecipeStep(
+            step_title="Finish Cooking",
+            step_instructions="After 2 hours, remove the aluminum foil an...",
+        ),
+        RecipeStep(
+            step_title="Serve",
+            step_instructions="Remove the brisket from the pot and let it...",
+        ),
+    ],
+    ingredients=[
+        "1 pound beef brisket",
+        "2 tablespoons olive oil",
+        "1 large onion, chopped",
+        "3 cloves garlic, minced",
+        "1 cup red wine",
+        "4 cups beef broth",
+        "2 cups heavy cream",
+        "1 teaspoon dried thyme",
+        "1 teaspoon dried rosemary",
+        "Salt and pepper to taste",
+    ],
+)
+
 
 ```
 
