@@ -67,7 +67,7 @@ class OpenAIAssistant(BaseParser):
         return instance
 
 
-class LLamaAssistant(BaseParser):
+class LLaMACPPAssistant(BaseParser):
     def __init__(
         self, target_cls, model_path, llama_cpp_kwargs=None, *args, **kwargs
     ):
@@ -83,8 +83,8 @@ class LLamaAssistant(BaseParser):
     def process(self, **kwargs):
         system_prompt = getattr(self.target_cls, "system_prompt", "")
         prompt = getattr(self.target_cls, "prompt", "")
-        rendered_system_prompt = self.target_cls.system_prompt.format(**kwargs)
-        rendered_prompt = self.target_cls.prompt.format(**kwargs)
+        rendered_system_prompt = system_prompt.format(**kwargs)
+        rendered_prompt = prompt.format(**kwargs)
 
         text = "\n".join(
             (
@@ -97,7 +97,7 @@ class LLamaAssistant(BaseParser):
             text,
             temperature=0.1,
             mirostat_mode=2,
-            max_tokens=2048,  #: TODO: Compute prompt size and adapt max token
+            max_tokens=2000,  #: TODO: Compute prompt size and adapt max token
             grammar=self.grammar,
         )
 

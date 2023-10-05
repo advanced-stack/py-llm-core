@@ -20,6 +20,12 @@ The latest version supports OpenAI, LLaMA and Mistral AI models.
 
 ## Changelog
 
+- 1.5.0: 
+    + Refactoring
+    + Renamed `LLamaParser` into `LLaMACPPParser`
+    + Dynamically enable GPU offloading on MacOS
+    + Added configuration option for storing local models
+
 - 1.4.0: Free up resources in LLamaParser when exiting the context manager
 - 1.3.0: Support for LLaMA based models (llama, llama2, Mistral Instruct)
 - 1.2.0: Chain of density prompting implemented with OpenAI
@@ -119,7 +125,7 @@ In the example we use a quantized version of the Mistral AI model. You can downl
 
 ```python
 from dataclasses import dataclass
-from llm_core.parsers import LLamaParser
+from llm_core.parsers import LLaMACPPParser
 
 @dataclass
 class Book:
@@ -138,7 +144,7 @@ of galactic civilization after the collapse of the Galactic Empire.
 """
 
 
-with LLamaParser(Book, model_path="mistral-7b-instruct-v0.1.Q4_K_M.gguf") as parser:
+with LLaMACPPParser(Book, model_path="mistral-7b-instruct-v0.1.Q4_K_M.gguf") as parser:
     book = parser.parse(text)
     print(book)
 ```
