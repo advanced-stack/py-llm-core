@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
-import json
-import codecs
 import openai
 
 from dataclasses import dataclass
 
+from .base import (
+    LLMBase,
+    ChatCompletion,
+)
+
 
 @dataclass
-class OpenAIChatModel:
+class OpenAIChatModel(LLMBase):
     name: str = "gpt-3.5-turbo"
     system_prompt: str = "You are a helpful assistant"
 
@@ -32,47 +35,19 @@ class OpenAIChatModel:
         else:
             raise KeyError("Unsupported model")
 
-    def sanitize_prompt(
-        self, prompt, history=None, functions=None, function_call=None
-    ):
-        functions_prompt = ""
-        function_call_prompt = ""
-
-        if functions:
-            functions_prompt = json.dumps(functions)
-
-        if function_call:
-            function_call_prompt = json.dumps(function_call)
-
-        complete_prompt = [
-            self.system_prompt,
-            prompt,
-            functions_prompt,
-            function_call_prompt,
-        ]
-
-        complete_prompt = "\n".join(complete_prompt)
-
-        ctx_size = len(codecs.encode(complete_prompt, self.name))
-        if ctx_size > self.ctx_size:
-            raise OverflowError(
-                f"Prompt too large {ctx_size} for this model {self.ctx_size}"
-            )
-
     def ask(
         self,
         prompt,
         history=None,
-        functions=None,
-        function_call=None,
+        schema=None,
         temperature=0,
     ):
         self.sanitize_prompt(
             prompt=prompt,
             history=history,
-            functions=functions,
-            function_call=function_call,
+            schema=schema,
         )
+
         messages = [
             {
                 "role": "system",
@@ -80,7 +55,7 @@ class OpenAIChatModel:
             },
         ]
         if history:
-            messages.append(history)
+            messages += history
 
         messages.append(
             {
@@ -90,16 +65,22 @@ class OpenAIChatModel:
         )
 
         kwargs = {}
-        if functions:
+        if schema:
+            functions = {
+                "name": "PublishAnswer",
+                "description": "Publish the answer",
+                "parameters": schema,
+            }
+            function_call = {"name": "PublishAnswer"}
+
             kwargs = {
-                "functions": functions,
+                "functions": [functions],
                 "function_call": function_call,
             }
-
         completion = openai.ChatCompletion.create(
             model=self.name,
             messages=messages,
             temperature=temperature,
             **kwargs,
         )
-        return completion
+        return ChatCompletion.parse(completion.to_dict_recursive())

@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
+import os
 import platform
 import llama_cpp
-import codecs
-import json
 
 from dataclasses import dataclass
 
+from .base import (
+    LLMBase,
+    ChatCompletion,
+)
+from ..schema import to_grammar
+from ..settings import MODELS_CACHE_DIR
+
 
 @dataclass
-class LLaMACPPModel:
+class LLaMACPPModel(LLMBase):
     """
     Model wrapper using the https://github.com/ggerganov/llama.cpp library
 
@@ -17,83 +23,46 @@ class LLaMACPPModel:
     see https://github.com/ggerganov/llama.cpp#readme
     """
 
-    name: str = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
+    name: str = "mistral"
     system_prompt: str = "You are a helpful assistant"
-    ctx: int = 4096
+    ctx_size: int = 8000
     verbose: bool = False
+    llama_cpp_kwargs: dict = None
 
-    def __enter__(self, **llama_cpp_kwargs):
-        if not llama_cpp_kwargs:
-            llama_cpp_kwargs = {
-                "n_ctx": self.ctx,
+    def __enter__(self):
+        self.load_model()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release_model()
+
+    def release_model(self):
+        del self.model
+
+    def load_model(self):
+        if self.llama_cpp_kwargs is None:
+            self.llama_cpp_kwargs = {
+                "n_ctx": self.ctx_size,
                 "verbose": self.verbose,
             }
 
             if platform.system() == "Darwin" and platform.machine() == "arm64":
                 # Offload everything onto the GPU on MacOS
-                llama_cpp_kwargs["n_gpu_layers"] = 1000
+                self.llama_cpp_kwargs["n_gpu_layers"] = 1000
 
-        self.model = llama_cpp.Llama(self.name, **llama_cpp_kwargs)
-
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        del self.model
-
-    def parse(self, text):
-        completion = self.model(
-            text,
-            temperature=0.1,
-            mirostat_mode=2,
-            max_tokens=4000,  #: TODO: Compute prompt size and adapt max token
-            grammar=self.grammar,
-        )
-
-        response = completion["choices"][0]["text"]
-        instance = self.deserialize(response)
-        return instance
-
-    def sanitize_prompt(
-        self, prompt, history=None, functions=None, function_call=None
-    ):
-        functions_prompt = ""
-        function_call_prompt = ""
-
-        if functions:
-            functions_prompt = json.dumps(functions)
-
-        if function_call:
-            function_call_prompt = json.dumps(function_call)
-
-        complete_prompt = [
-            self.system_prompt,
-            prompt,
-            functions_prompt,
-            function_call_prompt,
-        ]
-
-        complete_prompt = "\n".join(complete_prompt)
-
-        ctx_size = len(codecs.encode(complete_prompt, self.name))
-        if ctx_size > self.ctx_size:
-            raise OverflowError(
-                f"Prompt too large {ctx_size} for this model {self.ctx_size}"
-            )
+        model_path = os.path.join(MODELS_CACHE_DIR, self.name)
+        self.model = llama_cpp.Llama(model_path, **self.llama_cpp_kwargs)
 
     def ask(
         self,
         prompt,
         history=None,
-        functions=None,
-        function_call=None,
+        schema=None,
         temperature=0,
+        **llama_cpp_kwargs,
     ):
-        self.sanitize_prompt(
-            prompt=prompt,
-            history=history,
-            functions=functions,
-            function_call=function_call,
-        )
+        self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
+
         messages = [
             {
                 "role": "system",
@@ -101,7 +70,7 @@ class LLaMACPPModel:
             },
         ]
         if history:
-            messages.append(history)
+            messages += history
 
         messages.append(
             {
@@ -111,16 +80,26 @@ class LLaMACPPModel:
         )
 
         kwargs = {}
-        if functions:
-            kwargs = {
-                "functions": functions,
-                "function_call": function_call,
-            }
+        if schema:
+            grammar = to_grammar(schema)
+            kwargs = {"grammar": grammar}
 
-        completion = openai.ChatCompletion.create(
-            model=self.name,
-            messages=messages,
-            temperature=temperature,
-            **kwargs,
-        )
-        return completion
+        # Allow to call `ask` and free up memory immediately
+        model = getattr(self, "model", None)
+
+        if model:
+            completion = model.create_chat_completion(
+                messages=messages,
+                temperature=temperature,
+                max_tokens=-1,
+                **kwargs,
+            )
+        else:
+            with self as wrapper:
+                completion = wrapper.model.create_chat_completion(
+                    messages=messages,
+                    temperature=temperature,
+                    **kwargs,
+                )
+
+        return ChatCompletion.parse(completion)

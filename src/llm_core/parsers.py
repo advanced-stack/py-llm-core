@@ -1,46 +1,47 @@
 # -*- coding: utf-8 -*-
-import json
-import llama_cpp
-import platform
+import dirtyjson
 
-from .core import BaseParser
-from .llm import OpenAIChatModel
+from .llm import OpenAIChatModel, LLaMACPPModel
+from .schema import to_json_schema, from_dict
+
+
+class BaseParser:
+    def __init__(self, target_cls, *args, **kwargs):
+        self.target_cls = target_cls
+        self.target_json_schema = to_json_schema(self.target_cls)
+
+    def deserialize(self, json_str):
+        attributes = dirtyjson.loads(json_str)
+        return from_dict(self.target_cls, attributes)
+
+    def parse(self, text):
+        prompt = "Extract and parse information from provided content"
+        history = [{"role": "user", "content": text}]
+        completion = self.model_wrapper.ask(
+            prompt, history, schema=self.target_json_schema
+        )
+        instance = self.deserialize(completion.choices[0].message.content)
+        return instance
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 class OpenAIParser(BaseParser):
     def __init__(self, target_cls, model="gpt-3.5-turbo", *args, **kwargs):
         super().__init__(target_cls, *args, **kwargs)
-        self.model = OpenAIChatModel(
-            model=model,
+        self.model_wrapper = OpenAIChatModel(
+            name=model,
             system_prompt=(
                 "Act as a powerful AI able to extract, parse and process "
                 "information from unstructured content."
             ),
         )
-
-    def parse(self, text):
-        prompt = "Extract and parse information from provided content"
-
-        history = [
-            {
-                "role": "user",
-                "content": text,
-            },
-        ]
-        completion = self.ask(
-            prompt,
-            history,
-            functions=[self.schema],
-            function_call={"name": "PublishAnswer"},
-        )
-
-        response = completion["choices"][0]["message"]["function_call"][
-            "arguments"
-        ]
-
-        instance = self.deserialize(response)
-
-        return instance
+        self.ctx_size = self.model_wrapper.ctx_size
+        self.model_name = self.model_wrapper.name
 
 
 class LLaMACPPParser(BaseParser):
@@ -53,33 +54,23 @@ class LLaMACPPParser(BaseParser):
     """
 
     def __init__(
-        self, target_cls, model_path, llama_cpp_kwargs=None, *args, **kwargs
+        self,
+        target_cls,
+        model="mistral",
+        llama_cpp_kwargs=None,
+        *args,
+        **kwargs
     ):
         super().__init__(target_cls, *args, **kwargs)
+        self.model_wrapper = LLaMACPPModel(
+            name=model, llama_cpp_kwargs=llama_cpp_kwargs
+        )
+        self.ctx_size = self.model_wrapper.ctx_size
+        self.model_name = self.model_wrapper.name
 
-        if llama_cpp_kwargs is None:
-            llama_cpp_kwargs = {
-                "n_ctx": 4000,
-                "verbose": False,
-            }
-
-            if platform.system() == "Darwin" and platform.machine() == "arm64":
-                llama_cpp_kwargs["n_gpu_layers"] = 33
-
-        self.model = llama_cpp.Llama(model_path, **llama_cpp_kwargs)
+    def __enter__(self):
+        self.model_wrapper.load_model()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        del self.model
-
-    def parse(self, text):
-        completion = self.model(
-            text,
-            temperature=0.1,
-            mirostat_mode=2,
-            max_tokens=4000,  #: TODO: Compute prompt size and adapt max token
-            grammar=self.grammar,
-        )
-
-        response = completion["choices"][0]["text"]
-        instance = self.deserialize(response)
-        return instance
+        self.model_wrapper.release_model()

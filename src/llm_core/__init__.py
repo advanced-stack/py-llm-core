@@ -1,5 +1,5 @@
 import codecs
 
-from .tokenizers import tiktoken_lookup
+from .token_codecs import lookup
 
-codecs.register(tiktoken_lookup)
+codecs.register(lookup)

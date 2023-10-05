@@ -1,13 +1,31 @@
 # -*- coding: utf-8 -*-
 from typing import List
 from dataclasses import dataclass
-
-from .base import OpenAIAssistant
+from ..splitters import TokenSplitter
 
 
 @dataclass
-class DenseSummary:
-    denser_summary: str
+class Summary:
+    content: str
+
+
+@dataclass
+class SimpleSummary(Summary):
+    system_prompt = """
+    You are an expert at extracting key information and summarizing.
+    """
+
+    prompt = """Content:
+    ```
+    {content}
+    ```
+    --
+    Summarize the content in {word_count}.
+    """
+
+
+@dataclass
+class DenseSummary(Summary):
     missing_entities: List[str]
 
 
@@ -17,12 +35,11 @@ class DenserSummaryCollection:
     You are an expert in writing rich and dense summaries in broad domains.
     """
 
-    prompt = """
-    Article:
-
-    {article}
-
-    ----
+    prompt = """Content:
+    ```
+    {content}
+    ```
+    --
 
     You will generate increasingly concise, entity-dense summaries of the above
     Article.
@@ -45,12 +62,12 @@ class DenserSummaryCollection:
     - Anywhere: located anywhere in the Article
 
     Guidelines:
-    - The first summary should be long (4-5 sentences, approx. 80 words) yet
+    - The first summary should be long (4-5 sentences, approx. {word_count} words) yet
     highly non-specific, containing little information beyond the entities
     marked as missing.
 
     - Use overly verbose language and fillers (e.g. "this article discusses") to
-    reach approx. 80 words.
+    reach approx. {word_count} words.
 
     - Make every word count: re-write the previous summary to improve flow and
     make space for additional entities.
@@ -70,13 +87,43 @@ class DenserSummaryCollection:
     Answer in JSON.
 
     > The JSON in `summaries` should be a list (length 5) of
-    dictionaries whose keys are "missing_entities" and "denser_summary".
+    dictionaries whose keys are "missing_entities" and "content".
 
     """
 
     summaries: List[DenseSummary]
 
-    @classmethod
-    def summarize(cls, article):
-        with OpenAIAssistant(cls, model="gpt-4") as assistant:
-            return assistant.process(article=article)
+
+@dataclass
+class Summarizer:
+    model: str
+    assistant_cls: type
+    results_cls: type = SimpleSummary
+
+    def fast_summarize(self, content, word_count=80):
+        with self.assistant_cls(
+            self.results_cls, model=self.model
+        ) as assistant:
+            splitter = TokenSplitter(
+                model=assistant.model_name,
+                chunk_size=int(assistant.ctx_size * 0.5),
+                chunk_overlap=int(assistant.ctx_size * 0.05),
+            )
+            chunk = next(splitter.chunkify(content))
+            summary = assistant.process(content=chunk, word_count=word_count)
+            return summary
+
+    def summarize(self, content, word_count=80):
+        with self.assistant_cls(
+            self.results_cls, model=self.model
+        ) as assistant:
+            splitter = TokenSplitter(
+                model=assistant.model_name,
+                chunk_size=int(assistant.ctx_size * 0.5),
+                chunk_overlap=int(assistant.ctx_size * 0.05),
+            )
+            for chunk in splitter.chunkify(content):
+                summary = assistant.process(
+                    content=chunk, word_count=word_count
+                )
+                yield summary
