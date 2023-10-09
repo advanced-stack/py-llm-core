@@ -62,6 +62,9 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.1.0:
+    + Added support for Enum to provide better support for classification tasks
+    + Added example in the documentation
 - 2.0.0: 
     + Refactored code
     + Dynamically enable GPU offloading on MacOS
@@ -547,4 +550,78 @@ splitter = TokenSplitter(model="mistral-7b-instruct-v0.1.Q4_K_M.gguf", chunk_siz
 for chunk in splitter.chunkify(text):
     print(chunk)
 
+```
+
+
+## Classification and using enums
+
+One useful use case when interacting with LLMs is their ability to understand 
+what a user wants to achieve using natural language.
+
+Here's a simplified example :
+
+```python
+from dataclasses import dataclass
+from llm_core.assistants import LLaMACPPAssistant
+from enum import Enum
+
+class TargetItem(Enum):
+    PROJECT = 1
+    TASK = 2
+    COMMENT = 3
+    MEETING = 4
+
+
+class CRUDOperation(Enum):
+    CREATE = 1
+    READ = 2
+    UPDATE = 3
+    DELETE = 4
+
+
+@dataclass
+class UserQuery:
+    system_prompt = "You are a helpful assistant."
+    prompt = """
+    Analyze the user's query and convert his intent to:
+    - an operation (among CRUD)
+    - a target item
+
+    Query: {prompt}
+    """
+    operation: CRUDOperation
+    target: TargetItem
+
+
+def ask(prompt):
+    with LLaMACPPAssistant(UserQuery, model="mistral") as assistant:
+        user_query = assistant.process(prompt=prompt)
+        return user_query
+
+```
+
+```python
+In [2]: ask('Cancel all my meetings for the week')
+Out[2]: UserQuery(operation=<CRUDOperation.DELETE: 4>, target=<TargetItem.MEETING: 4>)
+
+In [3]: ask('What is the agenda ?')
+Out[3]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.MEETING: 4>)
+
+In [4]: ask('Schedule meeting for next monday')
+Out[4]: UserQuery(operation=<CRUDOperation.CREATE: 1>, target=<TargetItem.MEETING: 4>)
+
+In [5]: ask('When is my next meeting ?')
+Out[5]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.MEETING: 4>)
+
+# The classification went wrong here, so I tried a different formulation
+In [6]: ask('Todo: read the final report on the project LLMCore')
+Out[6]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.TASK: 2>)
+
+# Still no joy
+In [7]: ask('Task: read the final report on the project LLMCore')
+Out[7]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.PROJECT: 1>)
+
+# Being just a little more specific and voilà !
+In [8]: ask('Add to my todo: read the final report on the project LLMCore')
+Out[8]: UserQuery(operation=<CRUDOperation.CREATE: 1>, target=<TargetItem.TASK: 2>)
 ```

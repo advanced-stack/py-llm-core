@@ -3,6 +3,7 @@ import re
 import json
 import dataclasses
 import typing
+from enum import Enum
 
 from llama_cpp.llama_grammar import LlamaGrammar
 
@@ -38,6 +39,11 @@ def to_json_schema(datacls):
                 }
         elif dataclasses.is_dataclass(field_type):
             return to_json_schema(field_type)
+        elif issubclass(field_type, Enum):
+            return {
+                "type": "string",
+                "enum": list(field_type.__members__.keys()),
+            }
         else:
             return {"type": "object"}
 
@@ -54,19 +60,19 @@ def to_json_schema(datacls):
     return {"type": "object", "properties": properties, "required": required}
 
 
-def from_dict(datacls, data):
-    if dataclasses.is_dataclass(datacls):
-        field_types = {f.name: f.type for f in dataclasses.fields(datacls)}
-        return datacls(
+def from_dict(cls, data):
+    if dataclasses.is_dataclass(cls):
+        field_types = {f.name: f.type for f in dataclasses.fields(cls)}
+        return cls(
             **{k: from_dict(field_types[k], v) for k, v in data.items()}
         )
-    elif isinstance(datacls, typing._GenericAlias):
-        if datacls._name == "List":
-            return [from_dict(datacls.__args__[0], v) for v in data]
-        elif datacls._name == "Dict":
-            return {
-                k: from_dict(datacls.__args__[1], v) for k, v in data.items()
-            }
+    elif isinstance(cls, typing._GenericAlias):
+        if cls._name == "List":
+            return [from_dict(cls.__args__[0], v) for v in data]
+        elif cls._name == "Dict":
+            return {k: from_dict(cls.__args__[1], v) for k, v in data.items()}
+    elif issubclass(cls, Enum):
+        return getattr(cls, data)
     else:
         return data
 
