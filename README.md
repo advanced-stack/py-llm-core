@@ -62,6 +62,8 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.2.0:
+    + Default settings on ARM64 MacOS modified (1 thread / offloading everything on the GPU)
 - 2.1.0:
     + Added support for Enum to provide better support for classification tasks
     + Added example in the documentation
@@ -624,4 +626,79 @@ Out[7]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.PROJECT:
 # Being just a little more specific and voilà !
 In [8]: ask('Add to my todo: read the final report on the project LLMCore')
 Out[8]: UserQuery(operation=<CRUDOperation.CREATE: 1>, target=<TargetItem.TASK: 2>)
+```
+
+
+## Synthetic dataset generation example
+
+```python
+from typing import List
+from enum import Enum
+from dataclasses import dataclass
+from llm_core.assistants import LLaMACPPAssistant
+
+
+class Item(Enum):
+    CALENDAR = 1
+    EVENT = 2
+    TASK = 3
+    REMINDER = 4
+    INVITEE = 5
+
+
+class CRUDOperation(Enum):
+    CREATE = 1
+    READ = 2
+    UPDATE = 3
+    DELETE = 4
+
+
+@dataclass
+class UserQueryGenerator:
+    system_prompt = "You are a helpful assistant."
+    prompt = """
+    # Goals
+
+    We are developing a new business calendar software that is able to understand plain english.
+    
+    # Examples
+    
+    Cancel all my meetings of the week
+    What is my next meeting ?
+    What is on the agenda for the meeting at 1 pm ?
+    {queries}
+    
+    # Todo
+
+    Write {queries_count} new examples of what a user could have asked.
+    
+    """
+    user_queries: List[str]
+
+    @classmethod
+    def generate(cls, queries_count=10, existing_queries=()):
+        with LLaMACPPAssistant(cls, model="mistral") as assistant:
+            existing_queries_str = '\n'.join(existing_queries)
+            batch = assistant.process(queries_count=queries_count, queries=existing_queries_str)
+            return batch.user_queries
+
+
+@dataclass
+class UserQueryClassification:
+    system_prompt = "You are a helpful assistant."
+    prompt = """
+    Analyze the user's query and convert his intent to:
+    - an operation (among CRUD)
+    - a target item
+
+    Query: {prompt}
+    """
+    operation: CRUDOperation
+    item: Item
+
+    @classmethod
+    def ask(cls, prompt):
+        with LLaMACPPAssistant(cls, model="mistral") as assistant:
+            user_query = assistant.process(prompt=prompt)
+            return user_query
 ```
