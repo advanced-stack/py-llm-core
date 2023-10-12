@@ -31,8 +31,19 @@ class BaseParser:
 
 
 class OpenAIParser(BaseParser):
-    def __init__(self, target_cls, model="gpt-3.5-turbo", *args, **kwargs):
+    def __init__(
+        self,
+        target_cls,
+        model="gpt-3.5-turbo",
+        completion_kwargs=None,
+        *args,
+        **kwargs
+    ):
         super().__init__(target_cls, *args, **kwargs)
+        self.completion_kwargs = (
+            {} if completion_kwargs is None else completion_kwargs
+        )
+
         self.model_wrapper = OpenAIChatModel(
             name=model,
             system_prompt=(
@@ -57,11 +68,16 @@ class LLaMACPPParser(BaseParser):
         self,
         target_cls,
         model="mistral",
+        completion_kwargs=None,
         llama_cpp_kwargs=None,
         *args,
         **kwargs
     ):
         super().__init__(target_cls, *args, **kwargs)
+        self.completion_kwargs = (
+            {} if completion_kwargs is None else completion_kwargs
+        )
+
         self.model_wrapper = LLaMACPPModel(
             name=model, llama_cpp_kwargs=llama_cpp_kwargs
         )

@@ -48,8 +48,8 @@ class LLaMACPPModel(LLMBase):
 
             if platform.system() == "Darwin" and platform.machine() == "arm64":
                 # Offload everything onto the GPU on MacOS
-                self.llama_cpp_kwargs["n_gpu_layers"] = 1000
-                self.llama_cpp_kwargs["n_threads"] = 4
+                self.llama_cpp_kwargs["n_gpu_layers"] = 100
+                self.llama_cpp_kwargs["n_threads"] = 1
 
         model_path = os.path.join(MODELS_CACHE_DIR, self.name)
         self.model = llama_cpp.Llama(model_path, **self.llama_cpp_kwargs)

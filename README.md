@@ -64,6 +64,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 - 2.2.0:
     + Default settings on ARM64 MacOS modified (1 thread / offloading everything on the GPU)
+    + Added `completion_kwargs` for Assistants to set temperature
 - 2.1.0:
     + Added support for Enum to provide better support for classification tasks
     + Added example in the documentation

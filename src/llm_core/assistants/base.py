@@ -15,7 +15,7 @@ class BaseAssistant(BaseParser):
         self.model_wrapper.system_prompt = system_prompt
 
         completion = self.model_wrapper.ask(
-            prompt, schema=self.target_json_schema
+            prompt, schema=self.target_json_schema, **self.completion_kwargs
         )
         instance = self.deserialize(completion.choices[0].message.content)
         return instance
