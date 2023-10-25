@@ -703,3 +703,27 @@ class UserQueryClassification:
             user_query = assistant.process(prompt=prompt)
             return user_query
 ```
+
+
+## Argument analysis using Toulmin's method
+
+See the code in `examples/toulmin-model-argument-analysis.py`
+
+```shell
+python3 examples/toulmin-model-argument-analysis.py
+```
+
+```markdown
+**Claim**: All forms of CMC should be studied in order to fully understand how online communication effects relationships
+
+**Grounds**: Numerous studies have been conducted on various facets of Internet relationships, focusing on the levels of intimacy, closeness, different communication modalities, and the frequency of use of computer-mediated communication (CMC). However, contradictory results are suggested within this research mostly because only certain aspects of CMC are investigated.
+
+**Warrant**: CMC is defined and used as ‘email’ in creating feelings of closeness or intimacy. Other articles define CMC differently and, therefore, offer different results.
+
+**Qualifier**: The strength of the relationship was predicted best by FtF and phone communication, as participants rated email as an inferior means of maintaining personal relationships as compared to FtF and phone contacts.
+
+**Rebuttal**: Other studies define CMC differently and, therefore, offer different results.
+
+**Backing**: Cummings et al.'s (2002) research in relation to three other research articles
+```
+
