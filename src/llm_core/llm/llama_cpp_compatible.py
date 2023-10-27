@@ -25,7 +25,7 @@ class LLaMACPPModel(LLMBase):
 
     name: str = "mistral"
     system_prompt: str = "You are a helpful assistant"
-    ctx_size: int = 4000
+    ctx_size: int = 8000
     verbose: bool = False
     llama_cpp_kwargs: dict = None
 
