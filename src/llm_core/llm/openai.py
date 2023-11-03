@@ -78,11 +78,15 @@ class OpenAIChatModel(LLMBase):
                 "function_call": function_call,
             }
 
+        if "16k" in self.name:
+            timeout = (5, 240)
+        else:
+            timeout = (5, 180)
         completion = openai.ChatCompletion.create(
             model=self.name,
             messages=messages,
             temperature=temperature,
-            request_timeout=(2, 120),
+            request_timeout=timeout,
             **kwargs,
         )
         return ChatCompletion.parse(completion.to_dict_recursive())
