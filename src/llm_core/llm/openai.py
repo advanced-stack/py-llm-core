@@ -77,10 +77,12 @@ class OpenAIChatModel(LLMBase):
                 "functions": [functions],
                 "function_call": function_call,
             }
+
         completion = openai.ChatCompletion.create(
             model=self.name,
             messages=messages,
             temperature=temperature,
+            request_timeout=(2, 120),
             **kwargs,
         )
         return ChatCompletion.parse(completion.to_dict_recursive())
