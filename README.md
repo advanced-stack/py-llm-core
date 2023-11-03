@@ -62,8 +62,8 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
-- 2.3.0:
-    + Set reduced timeout on OpenAI API
+- 2.4.0:
+    + Set timeouts on OpenAI API
 - 2.2.0:
     + Default settings on ARM64 MacOS modified (1 thread / offloading everything on the GPU)
     + Added `completion_kwargs` for Assistants to set temperature
