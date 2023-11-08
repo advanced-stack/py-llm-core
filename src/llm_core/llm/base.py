@@ -80,6 +80,7 @@ class ChatCompletion:
     model: str
     choices: List[ChatCompletionChoice]
     usage: Usage
+    system_fingerprint: str = None
 
     @classmethod
     def parse(cls, attrs):

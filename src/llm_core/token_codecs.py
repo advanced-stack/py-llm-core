@@ -29,10 +29,16 @@ class OpenAIGPTCodec(BaseTokenCodec):
     def is_supported(cls, codec_name):
         return codec_name in (
             "gpt3.5",
+            "gpt3.5_0613",
             "gpt_3.5",
+            "gpt_3.5_0613",
             "gpt_3.5_turbo",
+            "gpt_3.5_turbo_0613",
             "gpt_3.5_turbo_16k",
+            "gpt_3.5_turbo_16k_0613",
             "gpt_4",
+            "gpt_4_0613",
+            "gpt_4_1106_preview",
             "gpt_4_32k",
         )
 
