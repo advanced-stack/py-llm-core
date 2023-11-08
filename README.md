@@ -729,3 +729,74 @@ python3 examples/toulmin-model-argument-analysis.py
 **Backing**: Cummings et al.'s (2002) research in relation to three other research articles
 ```
 
+## LLaVA - Multi modalities - Mistral Vision
+
+We can use a quantized version of the BakLLaVA model from [SkunkworksAI](https://github.com/SkunkworksAI) to process images.
+
+Download `BakLLaVA-1-Q4_K_M.gguf` and `BakLLaVA-1-clip-model.gguf` files from https://huggingface.co/advanced-stack/bakllava-mistral-v1-gguf/tree/main
+
+To run inference:
+
+```python
+from llm_core.llm import LLaVACPPModel
+
+model = "BakLLaVA-1-Q4_K_M.gguf"
+
+llm = LLaVACPPModel(
+    name=model,
+    llama_cpp_kwargs={
+        "logits_all": True,
+        "n_ctx": 8000,
+        "verbose": False,
+        "n_gpu_layers": 100, # Set to 0 if you don't have a GPU
+        "n_threads": 1, 
+        "clip_model_path": "BakLLaVA-1-clip-model.gguf"
+    }
+)
+
+llm.load_model()
+
+history = [
+    {
+        'role': 'user',
+        'content': [
+            {'type': 'image_url', 'image_url': 'http://localhost:8000/adv.png'}
+        ]
+    }
+]
+
+llm.ask('Describe the image as accurately as possible', history=history)
+
+```
+
+```python
+ChatCompletion(
+    id='chatcmpl-c1e49a42-fe96-49ba-a47b-991479f7d672',
+    object='chat.completion',
+    created=1699476989,
+    model='/Users/pas/.cache/py-llm-core/models/BakLLaVA-1-Q4_K_M.gguf',
+    choices=[
+        ChatCompletionChoice(
+            index=0,
+            message=Message(
+                role='assistant',
+                content='''The image features a brown background with large,
+                  bold text that reads
+                  "Understand, Learn, Build and Deploy LLM Projects."
+
+                  This text is yellow.
+
+                  The words "Leverage AI Power Without Disclosing Your Data"
+                  are also written on the background, adding more information to the scene.
+            '''),
+            finish_reason='stop'
+        )
+    ],
+    usage=Usage(
+        prompt_tokens=630,
+        completion_tokens=62,
+        total_tokens=692
+    ),
+    system_fingerprint=None
+)
+```
