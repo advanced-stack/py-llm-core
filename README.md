@@ -62,6 +62,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.6.0: Add support for Azure OpenAI
 - 2.5.1: Fix bug on system prompt format
 - 2.5.0: Add support for LLaVA models
 - 2.4.0:
@@ -210,6 +211,68 @@ Book(
 )
 ```
 
+#### Using Azure OpenAI
+
+Using OpenAI Azure services can be enabled by following the steps:
+
+1. Create an Azure account
+2. Enable Azure OpenAI cognitive services
+3. Get the API key and the API endpoint provided
+4. Set the environment variable USE_AZURE_OPENAI to True (`export USE_AZURE_OPENAI=True`)
+5. Set the environment variable AZURE_OPENAI_ENDPOINT (see step 3)
+6. Set the environment variable AZURE_OPENAI_API_KEY (see step 3)
+7. Create a deployment where you use the model name from OpenAI. You'll need to remove dot signs, i.e. for the model `gpt-3.5-turbo-0613` create a deployment named `gpt-35-turbo-0613`.
+8. PyLLMCore will take care of removing the dot sign for you so you can use the same code base for both OpenAI and Azure.
+9. When calling Parser or Assistant classes, specify the model
+
+The following example uses Azure OpenAI:
+
+```shell
+export USE_AZURE_OPENAI=True
+export AZURE_OPENAI_API_KEY=< your api key >
+export AZURE_OPENAI_ENDPOINT=https://< your endpoint >.openai.azure.com/
+```
+
+```python
+from dataclasses import dataclass
+from llm_core.parsers import OpenAIParser
+
+
+@dataclass
+class Book:
+    title: str
+    summary: str
+    author: str
+    published_year: int
+
+
+text = """Foundation is a science fiction novel by American writer
+Isaac Asimov. It is the first published in his Foundation Trilogy (later
+expanded into the Foundation series). Foundation is a cycle of five
+interrelated short stories, first published as a single book by Gnome Press
+in 1951. Collectively they tell the early story of the Foundation,
+an institute founded by psychohistorian Hari Seldon to preserve the best
+of galactic civilization after the collapse of the Galactic Empire.
+"""
+
+
+with OpenAIParser(Book, model="gpt-3.5-turbo-0613") as parser:
+    book = parser.parse(text)
+    print(book)
+```
+
+```python
+Book(
+    title='Foundation',
+    summary="""Foundation is a cycle of five interrelated
+    short stories, first published as a single book by Gnome Press in 1951.
+    Collectively they tell the early story of the Foundation, an institute
+    founded by psychohistorian Hari Seldon to preserve the best of galactic
+    civilization after the collapse of the Galactic Empire.""",
+    author='Isaac Asimov',
+    published_year=1951
+)
+```
 
 ### Perform advanced tasks
 
