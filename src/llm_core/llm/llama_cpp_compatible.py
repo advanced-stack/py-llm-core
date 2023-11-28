@@ -149,7 +149,6 @@ class LLaVACPPModel(LLaMACPPModel):
                 "content": self.system_prompt,
             },
         ]
-
         if history:
             messages += history
 
