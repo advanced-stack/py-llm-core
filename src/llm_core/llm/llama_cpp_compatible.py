@@ -146,10 +146,9 @@ class LLaVACPPModel(LLaMACPPModel):
         messages = [
             {
                 "role": "system",
-                "content": [{"type": "text", "text": self.system_prompt}],
+                "content": self.system_prompt,
             },
         ]
-
         if history:
             messages += history
 
