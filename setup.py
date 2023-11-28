@@ -7,10 +7,12 @@ here = Path(__file__).parent
 packages = find_packages("src")
 main_package = packages[0]
 long_description = (here / "README.md").read_text()
+requirements = (here / "requirements.txt").read_text().splitlines()
+
 
 setup(
     name="py-llm-core",
-    version="2.5.1",
+    version="2.6.0",
     license="MIT",
     description="PyLLMCore provides a light-weighted interface with LLMs",
     long_description=long_description,
@@ -21,12 +23,5 @@ setup(
     packages=packages,
     package_dir={"": "src"},
     include_package_data=True,
-    install_requires=[
-        "openai",
-        "tiktoken",
-        "jsonschema",
-        "dirtyjson",
-        "llama-cpp-python",
-        "python-decouple",
-    ],
+    install_requires=requirements,
 )

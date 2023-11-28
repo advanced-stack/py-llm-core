@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import openai
+import httpx
+from openai import AzureOpenAI, OpenAI
 
 from dataclasses import dataclass
 
@@ -7,6 +8,43 @@ from .base import (
     LLMBase,
     ChatCompletion,
 )
+
+from ..settings import (
+    USE_AZURE_OPENAI,
+    AZURE_OPENAI_ENDPOINT,
+)
+
+
+def create_chat_completion(
+    model, messages, temperature, max_tokens=1000, **kwargs
+):
+    default_timeout = httpx.Timeout(120.0, write=10.0, connect=2.0)
+
+    if USE_AZURE_OPENAI:
+        # gets the API Key from environment variable AZURE_OPENAI_API_KEY
+        client = AzureOpenAI(
+            api_version="2023-09-01-preview",
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            timeout=default_timeout,
+        )
+
+        # Here we are using the following convention:
+        # Every model name is mapped to an Azure deployment where we remove the
+        # dot sign.
+        model_name = model.replace(".", "")
+    else:
+        client = OpenAI(timeout=default_timeout)
+        model_name = model
+
+    completion = client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        **kwargs,
+    )
+
+    return completion
 
 
 @dataclass
@@ -80,15 +118,11 @@ class OpenAIChatModel(LLMBase):
                 "function_call": function_call,
             }
 
-        if "16k" in self.name:
-            timeout = (5, 240)
-        else:
-            timeout = (5, 180)
-        completion = openai.ChatCompletion.create(
+        completion = create_chat_completion(
             model=self.name,
             messages=messages,
             temperature=temperature,
-            request_timeout=timeout,
             **kwargs,
         )
-        return ChatCompletion.parse(completion.to_dict_recursive())
+
+        return ChatCompletion.parse(completion.dict())

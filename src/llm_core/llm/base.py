@@ -46,6 +46,8 @@ class Usage:
 class Message:
     role: str
     content: str
+    function_call: dict = None
+    tool_calls: dict = None
 
 
 @dataclass
@@ -58,11 +60,14 @@ class ChatCompletionChoice:
     def from_iterable(cls, iterable):
         for item in iterable:
             message_attrs = item["message"]
+
+            # To ensure compatibility with other models, we stuff
+            # function calling in the message content.
+
             if "function_call" in message_attrs:
                 message_attrs["content"] = message_attrs["function_call"][
                     "arguments"
                 ]
-                message_attrs.pop("function_call")
 
             message = Message(**item["message"])
             index = item["index"]
@@ -81,6 +86,7 @@ class ChatCompletion:
     choices: List[ChatCompletionChoice]
     usage: Usage
     system_fingerprint: str = None
+    prompt_filter_results: dict = None
 
     @classmethod
     def parse(cls, attrs):
