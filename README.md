@@ -62,6 +62,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.6.1: Add dynamic max_tokens computation for OpenAI
 - 2.6.0: Add support for Azure OpenAI
 - 2.5.1: Fix bug on system prompt format
 - 2.5.0: Add support for LLaVA models

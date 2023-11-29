@@ -82,11 +82,17 @@ class OpenAIChatModel(LLMBase):
         schema=None,
         temperature=0,
     ):
-        self.sanitize_prompt(
+        max_tokens = self.sanitize_prompt(
             prompt=prompt,
             history=history,
             schema=schema,
         )
+
+        #: Reduce by 10 percent the maximum tokens to be generated to take into
+        #: account inaccuracies of sanitize_prompt (especially the schema token
+        #: consumption)
+
+        max_tokens = int(0.9 * max_tokens)
 
         messages = [
             {
@@ -122,6 +128,7 @@ class OpenAIChatModel(LLMBase):
             model=self.name,
             messages=messages,
             temperature=temperature,
+            max_tokens=max_tokens,
             **kwargs,
         )
 
