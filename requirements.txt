@@ -1,0 +1,6 @@
+openai>=1.3.5,<2
+tiktoken
+jsonschema
+dirtyjson
+llama-cpp-python>=0.2.20
+python-decouple

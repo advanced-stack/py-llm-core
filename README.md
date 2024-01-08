@@ -62,6 +62,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.7.0: Fixed bug when function_call was set at None
 - 2.6.1: Add dynamic max_tokens computation for OpenAI
 - 2.6.0: Add support for Azure OpenAI
 - 2.5.1: Fix bug on system prompt format
@@ -147,8 +148,9 @@ an institute founded by psychohistorian Hari Seldon to preserve the best
 of galactic civilization after the collapse of the Galactic Empire.
 """
 
+model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
 
-with LLaMACPPParser(Book, model="mistral-7b-instruct-v0.1.Q4_K_M.gguf") as parser:
+with LLaMACPPParser(Book, model=model) as parser:
     book = parser.parse(text)
     print(book)
 ```

@@ -64,7 +64,8 @@ class ChatCompletionChoice:
             # To ensure compatibility with other models, we stuff
             # function calling in the message content.
 
-            if "function_call" in message_attrs:
+            function_call = message_attrs.get("function_call")
+            if function_call:
                 message_attrs["content"] = message_attrs["function_call"][
                     "arguments"
                 ]
