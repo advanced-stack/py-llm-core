@@ -62,6 +62,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.8.0: Added support for native type annotation (pep585) for lists and sets
 - 2.7.0: Fixed bug when function_call was set at None
 - 2.6.1: Add dynamic max_tokens computation for OpenAI
 - 2.6.0: Add support for Azure OpenAI

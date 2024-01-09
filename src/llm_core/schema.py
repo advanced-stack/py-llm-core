@@ -24,8 +24,17 @@ def to_json_schema(datacls):
             return {"type": "string", "contentEncoding": "base64"}
         elif field_type == tuple:
             return {"type": "array", "items": {}}
-        elif field_type == set:
-            return {"type": "array", "uniqueItems": True, "items": {}}
+        elif field_type.__name__ == "set":
+            return {
+                "type": "array",
+                "uniqueItems": True,
+                "items": get_type(field_type.__args__[0]),
+            }
+        elif field_type.__name__ == "list":
+            return {
+                "type": "array",
+                "items": get_type(field_type.__args__[0]),
+            }
         elif isinstance(field_type, typing._GenericAlias):
             if field_type._name == "List":
                 return {
