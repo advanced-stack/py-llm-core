@@ -75,6 +75,10 @@ def from_dict(cls, data):
         return cls(
             **{k: from_dict(field_types[k], v) for k, v in data.items()}
         )
+    elif cls.__name__ == "list":
+        return [from_dict(cls.__args__[0], v) for v in data]
+    elif cls.__name__ == "set":
+        return set([from_dict(cls.__args__[0], v) for v in data])
     elif isinstance(cls, typing._GenericAlias):
         if cls._name == "List":
             return [from_dict(cls.__args__[0], v) for v in data]
