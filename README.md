@@ -62,6 +62,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.8.3: Raised timeout
 - 2.8.1: Fixed bug when deserializing instances
 - 2.8.0: Added support for native type annotation (pep585) for lists and sets
 - 2.7.0: Fixed bug when function_call was set at None
