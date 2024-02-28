@@ -134,3 +134,4 @@ class OpenAIChatModel(LLMBase):
         )
 
         return ChatCompletion.parse(completion.dict())
+    
