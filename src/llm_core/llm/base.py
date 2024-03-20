@@ -16,7 +16,7 @@ class LLMBase:
         schema_prompt = ""
 
         if schema:
-            schema_prompt = json.dumps(schema_prompt)
+            schema_prompt = json.dumps(schema)
 
         complete_prompt = [
             self.system_prompt,
