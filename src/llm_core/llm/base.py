@@ -21,6 +21,7 @@ class LLMBase:
         complete_prompt = [
             self.system_prompt,
             prompt,
+            str(history) if history else "",
             schema_prompt,
         ]
 
