@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from ..parsers import BaseParser, OpenAIParser, LLaMACPPParser
+from ..parsers import BaseParser, OpenAIParser, LLaMACPPParser,MistralParser
 
 
 class BaseAssistant(BaseParser):
@@ -17,9 +17,27 @@ class BaseAssistant(BaseParser):
         completion = self.model_wrapper.ask(
             prompt, schema=self.target_json_schema, **self.completion_kwargs
         )
+        print("ici")
+        print(completion)
         instance = self.deserialize(completion.choices[0].message.content)
         return instance
+    
+class MistralAiAssistant(BaseAssistant, MistralParser):
+    def __init__(self, target_cls, model="mistral-tiny", *args, **kwargs):
+        super().__init__(target_cls, model=model, *args, **kwargs)
 
+    def process(self, **kwargs):
+        system_prompt = self.system_prompt.format(**kwargs)
+        prompt = self.prompt.format(**kwargs)
+
+        self.model_wrapper.system_prompt = system_prompt
+
+        completion = self.model_wrapper.ask(
+            prompt, schema=self.target_json_schema, **self.completion_kwargs
+        )
+       
+        instance = self.deserialize(completion.choices[0].message.tool_calls[0]['function']['arguments'])
+        return instance
 
 class OpenAIAssistant(BaseAssistant, OpenAIParser):
     def __init__(self, target_cls, model="gpt-3.5-turbo", *args, **kwargs):
