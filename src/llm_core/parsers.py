@@ -1,15 +1,17 @@
-# -*- coding: utf-8 -*-
+
 import dirtyjson
 
-from .llm import OpenAIChatModel, LLaMACPPModel
+from .llm import OpenAIChatModel, LLaMACPPModel,MistralAiChatModel
 from .schema import to_json_schema, from_dict
 
 
 class BaseParser:
     def __init__(self, target_cls, *args, **kwargs):
         self.target_cls = target_cls
+        
+        
         self.target_json_schema = to_json_schema(self.target_cls)
-
+        
     def deserialize(self, json_str):
         attributes = dirtyjson.loads(json_str)
         return from_dict(self.target_cls, attributes)
@@ -29,6 +31,31 @@ class BaseParser:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+class MistralParser(BaseParser):
+
+      def __init__(
+        self,
+        target_cls,
+        model="mistral-tiny",
+        completion_kwargs=None,
+        *args,
+        **kwargs
+    ):
+        super().__init__(target_cls, *args, **kwargs)
+        self.completion_kwargs = (
+            {} if completion_kwargs is None else completion_kwargs
+        )
+
+        self.model_wrapper = MistralAiChatModel(
+            name=model,
+            system_prompt=(
+                "Act as a powerful AI able to extract, parse and process "
+                "information from unstructured content."
+            ),
+        )
+        self.ctx_size = self.model_wrapper.ctx_size
+        self.model_name = self.model_wrapper.name
+    
 
 class OpenAIParser(BaseParser):
     def __init__(
