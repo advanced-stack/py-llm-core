@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-from ..parsers import BaseParser, OpenAIParser, LLaMACPPParser
+from ..parsers import (
+    BaseParser,
+    OpenAIParser,
+    LLaMACPPParser,
+    MistralAILargeParser,
+)
 
 
 class BaseAssistant(BaseParser):
@@ -42,3 +47,10 @@ class LLaMACPPAssistant(BaseAssistant, LLaMACPPParser):
             *args,
             **kwargs
         )
+
+
+class MistralAILargeAssistant(BaseAssistant, MistralAILargeParser):
+    def __init__(
+        self, target_cls, model="mistral-large-latest", *args, **kwargs
+    ):
+        super().__init__(target_cls, model=model, *args, **kwargs)

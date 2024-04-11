@@ -4,3 +4,4 @@ jsonschema
 dirtyjson
 llama-cpp-python>=0.2.20
 python-decouple
+mistralai

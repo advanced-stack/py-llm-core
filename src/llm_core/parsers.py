@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import dirtyjson
 
-from .llm import OpenAIChatModel, LLaMACPPModel
+from .llm import OpenAIChatModel, LLaMACPPModel, MistralAILarge
 from .schema import to_json_schema, from_dict
 
 
@@ -90,3 +90,28 @@ class LLaMACPPParser(BaseParser):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.model_wrapper.release_model()
+
+
+class MistralAILargeParser(BaseParser):
+    def __init__(
+        self,
+        target_cls,
+        model="mistral-large-latest",
+        completion_kwargs=None,
+        *args,
+        **kwargs
+    ):
+        super().__init__(target_cls, *args, **kwargs)
+        self.completion_kwargs = (
+            {} if completion_kwargs is None else completion_kwargs
+        )
+
+        self.model_wrapper = MistralAILarge(
+            name=model,
+            system_prompt=(
+                "Act as a powerful AI able to extract, parse and process "
+                "information from unstructured content."
+            ),
+        )
+        self.ctx_size = self.model_wrapper.ctx_size
+        self.model_name = self.model_wrapper.name

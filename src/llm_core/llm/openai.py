@@ -24,7 +24,7 @@ def create_chat_completion(
     if USE_AZURE_OPENAI:
         # gets the API Key from environment variable AZURE_OPENAI_API_KEY
         client = AzureOpenAI(
-            api_version="2023-09-01-preview",
+            api_version="2024-02-01",
             azure_endpoint=AZURE_OPENAI_ENDPOINT,
             timeout=default_timeout,
         )
