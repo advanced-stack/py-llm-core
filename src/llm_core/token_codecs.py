@@ -40,6 +40,8 @@ class OpenAIGPTCodec(BaseTokenCodec):
             "gpt_4_0613",
             "gpt_4_1106_preview",
             "gpt_4_32k",
+            "mistral_large_latest",  #: dirty hack to quickly support mistral
+            "azureai",  #: dirty hack to quickly support mistral
         )
 
     def __init__(self, codec_name):

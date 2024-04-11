@@ -49,6 +49,7 @@ class Message:
     content: str
     function_call: dict = None
     tool_calls: dict = None
+    name: str = None
 
 
 @dataclass
@@ -66,10 +67,15 @@ class ChatCompletionChoice:
             # function calling in the message content.
 
             function_call = message_attrs.get("function_call")
+            tool_calls = message_attrs.get("tool_calls")
             if function_call:
                 message_attrs["content"] = message_attrs["function_call"][
                     "arguments"
                 ]
+            elif tool_calls:
+                message_attrs["content"] = message_attrs["tool_calls"][0][
+                    "function"
+                ]["arguments"]
 
             message = Message(**item["message"])
             index = item["index"]

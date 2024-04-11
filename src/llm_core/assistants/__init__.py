@@ -1,4 +1,4 @@
-from .base import OpenAIAssistant, LLaMACPPAssistant
+from .base import OpenAIAssistant, LLaMACPPAssistant, MistralAILargeAssistant
 from .summarizers import Summarizer, SimpleSummary, DenserSummaryCollection
 from .verifiers import (
     QuestionCollection,
@@ -12,6 +12,7 @@ from .analysts import Answer, Analyst
 __all__ = [
     "OpenAIAssistant",
     "LLaMACPPAssistant",
+    "MistralAILargeAssistant",
     "Summarizer",
     "SimpleSummary",
     "DenserSummaryCollection",
