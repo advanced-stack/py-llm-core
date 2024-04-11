@@ -31,6 +31,7 @@ The design decisions behind PyLLMCore are:
 
 Besides OpenAI API, the following models are supported for local inference using the [llama.cpp](http://github.com/ggerganov/llama.cpp):
 
+- Mistral Large (via Azure or La Plateforme)
 - LLaMA
 - LLaMA 2
 - Falcon
@@ -62,6 +63,7 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 
 ## Changelog
 
+- 2.8.4: Added support for Mistral Large
 - 2.8.3: Raised timeout
 - 2.8.1: Fixed bug when deserializing instances
 - 2.8.0: Added support for native type annotation (pep585) for lists and sets
