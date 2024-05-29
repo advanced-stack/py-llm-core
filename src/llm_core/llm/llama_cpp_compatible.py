@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 import platform
 import llama_cpp
 
@@ -51,7 +51,8 @@ class LLaMACPPModel(LLMBase):
                 self.llama_cpp_kwargs["n_gpu_layers"] = 100
                 self.llama_cpp_kwargs["n_threads"] = 1
 
-        model_path = os.path.join(MODELS_CACHE_DIR, self.name)
+        model_path = str(Path(MODELS_CACHE_DIR) / self.name)
+
         self.model = llama_cpp.Llama(model_path, **self.llama_cpp_kwargs)
 
     def ask(
@@ -120,7 +121,7 @@ class LLaVACPPModel(LLaMACPPModel):
                 self.llama_cpp_kwargs["n_gpu_layers"] = 100
                 self.llama_cpp_kwargs["n_threads"] = 1
 
-        model_path = os.path.join(MODELS_CACHE_DIR, self.name)
+        model_path = str(Path(MODELS_CACHE_DIR) / self.name)
         chat_format = "llava-1-5"
         chat_handler = llama_cpp.llama_chat_format.Llava15ChatHandler(
             clip_model_path=self.llama_cpp_kwargs["clip_model_path"]
