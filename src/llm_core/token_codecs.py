@@ -43,12 +43,12 @@ class OpenAIGPTCodec(BaseTokenCodec):
             #: dirty hack to quickly support mistral
             #: token count approximation using tiktoken
             "mistral_large_latest",
-            "open_mistral_7b"
-            "open_mixtral_8x7b"
-            "mistral_small_latest"
-            "mistral_medium_latest"
-            "mistral_large_latest"
-            "codestral_latest"
+            "open_mistral_7b",
+            "open_mixtral_8x7b",
+            "mistral_small_latest",
+            "mistral_medium_latest",
+            "mistral_large_latest",
+            "codestral_latest",
             "azureai",
         )
 
