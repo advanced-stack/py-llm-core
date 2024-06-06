@@ -19,7 +19,7 @@ setup: venv
 # Define the package name and version
 PKG_NAME := py-llm-core
 MOD_NAME := py_llm_core
-PKG_VERSION := 2.8.5
+PKG_VERSION := 2.8.6
 
 # Define the directory where the package source code is located
 PKG_DIR := $(shell pwd)
@@ -79,8 +79,7 @@ check:
 # Define the target to upload the built packages to PyPI
 upload:
 	@echo "Uploading built packages to PyPI"
-	$(TWINE) upload $(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION).tar.gz
-	$(TWINE) upload $(BUILD_DIR)/$(MOD_NAME)-$(PKG_VERSION)-py3-none-any.whl
+	$(TWINE) upload $(BUILD_DIR)/*
 
 display-version:
 	echo ${PKG_VERSION}
