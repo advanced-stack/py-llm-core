@@ -93,7 +93,11 @@ class OpenAIChatModel(LLMBase):
         #: account inaccuracies of sanitize_prompt (especially the schema token
         #: consumption)
 
-        max_tokens = int(0.9 * max_tokens)
+        #: this needs refactoring
+        if self.name == "gpt-4o-2024-05-13":
+            max_tokens = 4_000
+        else:
+            max_tokens = int(0.9 * max_tokens)
 
         messages = [
             {
