@@ -71,7 +71,7 @@ class OpenAIChatModel(LLMBase):
             return 8_000
         elif self.name == "gpt-4-32k":
             return 32_000
-        elif self.name in ("gpt-4-1106-preview", "gpt4-o"):
+        elif self.name in ("gpt-4-1106-preview", "gpt-4o-2024-05-13"):
             return 128_000
         else:
             raise KeyError("Unsupported model")
