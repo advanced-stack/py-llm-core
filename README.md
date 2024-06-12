@@ -823,6 +823,7 @@ ChatCompletion(
 
 ## Changelog
 
+- 2.8.8: Add gpt4-o
 - 2.8.5: Fix model path building
 - 2.8.4: Added support for Mistral Large
 - 2.8.3: Raised timeout
