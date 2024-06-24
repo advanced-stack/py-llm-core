@@ -79,6 +79,15 @@ Available parsers:
 
 #### Using NuExtract model
 
+Getting the tiny model to use locally:
+
+```shell
+mkdir -p ~/.cache/py-llm-core/models
+cd ~/.cache/py-llm-core/models
+wget -O nuextract-tiny https://huggingface.co/advanced-stack/NuExtract-tiny-GGUF/resolve/main/nuextract-tiny-f16.gguf?download=true
+```
+
+
 ```python
 from dataclasses import dataclass
 from llm_core.parsers import NuExtractParser
