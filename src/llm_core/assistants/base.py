@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from textwrap import dedent
 from ..parsers import (
     BaseParser,
     OpenAIParser,
@@ -14,8 +15,8 @@ class BaseAssistant(BaseParser):
         self.prompt = getattr(self.target_cls, "prompt", "")
 
     def process(self, **kwargs):
-        system_prompt = self.system_prompt.format(**kwargs)
-        prompt = self.prompt.format(**kwargs)
+        system_prompt = dedent(self.system_prompt.format(**kwargs))
+        prompt = dedent(self.prompt.format(**kwargs))
 
         self.model_wrapper.system_prompt = system_prompt
 

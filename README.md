@@ -75,6 +75,37 @@ Available parsers:
 
 - `parsers.OpenAIParser`
 - `parsers.LLaMACPPParser`
+- `parsers.NuExtractParser`
+
+#### Using NuExtract model
+
+```python
+from dataclasses import dataclass
+from llm_core.parsers import NuExtractParser
+
+#: NuExtract model needs default values for the class fields
+@dataclass
+class Book:
+    title: str = ""
+    summary: str = ""
+    author: str = ""
+    published_year: int = ""
+
+
+text = """Foundation is a science fiction novel by American writer
+Isaac Asimov. It is the first published in his Foundation Trilogy (later
+expanded into the Foundation series). Foundation is a cycle of five
+interrelated short stories, first published as a single book by Gnome Press
+in 1951. Collectively they tell the early story of the Foundation,
+an institute founded by psychohistorian Hari Seldon to preserve the best
+of galactic civilization after the collapse of the Galactic Empire.
+"""
+
+with NuExtractParser(Book) as parser:
+    response = parser.parse(text)
+    print(response)
+
+```
 
 #### Using a local model : Mistral AI Instruct
 
@@ -823,6 +854,7 @@ ChatCompletion(
 
 ## Changelog
 
+- 2.8.11: Add support for NuExtract models
 - 2.8.10: Add gpt-4o-2024-05-13
 - 2.8.5: Fix model path building
 - 2.8.4: Added support for Mistral Large

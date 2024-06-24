@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import json
 import dirtyjson
+from dataclasses import asdict
 
-from .llm import OpenAIChatModel, LLaMACPPModel, MistralAILarge
+from .llm import OpenAIChatModel, LLaMACPPModel, MistralAILarge, NuExtractModel
 from .schema import to_json_schema, from_dict
 
 
@@ -115,3 +117,57 @@ class MistralAILargeParser(BaseParser):
         )
         self.ctx_size = self.model_wrapper.ctx_size
         self.model_name = self.model_wrapper.name
+
+
+class NuExtractParser(BaseParser):
+    """
+    Parser using the NuExtract model series
+    """
+
+    def __init__(
+        self,
+        target_cls,
+        model="nuextract-tiny",
+        completion_kwargs=None,
+        llama_cpp_kwargs=None,
+        *args,
+        **kwargs
+    ):
+        super().__init__(target_cls, *args, **kwargs)
+        self.completion_kwargs = (
+            {} if completion_kwargs is None else completion_kwargs
+        )
+
+        self.model_wrapper = NuExtractModel(
+            name=model, llama_cpp_kwargs=llama_cpp_kwargs
+        )
+        self.ctx_size = self.model_wrapper.ctx_size
+        self.model_name = self.model_wrapper.name
+
+    def __enter__(self):
+        self.model_wrapper.load_model()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.model_wrapper.release_model()
+
+    def deserialize(self, json_str):
+        attributes = dirtyjson.loads(json_str)
+        return from_dict(self.target_cls, attributes)
+
+    def parse(self, text):
+        simplified_schema = json.dumps(asdict(self.target_cls()), indent=4)
+        prompt = """<|input|>
+### Template:
+{simplified_schema}
+### Text:
+{text}
+<|output|>
+""".format(
+            simplified_schema=simplified_schema, text=text
+        )
+
+        history = []
+        completion = self.model_wrapper.ask(prompt, history)
+        instance = self.deserialize(completion.choices[0].message.content)
+        return instance
