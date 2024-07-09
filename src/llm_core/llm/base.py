@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import List
 import codecs
 import json
+
+
+def remove_unsupported_attributes(data_cls, attributes):
+    field_names = set(field.name for field in fields(data_cls))
+    return {k: v for k, v in attributes.items() if k in field_names}
 
 
 @dataclass
@@ -98,8 +103,7 @@ class ChatCompletion:
 
     @classmethod
     def parse(cls, attrs):
-        attributes = {}
-        attributes.update(attrs)
+        attributes = remove_unsupported_attributes(cls, attrs)
 
         attributes["choices"] = list(
             ChatCompletionChoice.from_iterable(attributes["choices"])
