@@ -1,209 +1,254 @@
 # -*- coding: utf-8 -*-
-import re
 import json
-import dataclasses
-import typing
-from enum import Enum
 
+from enum import Enum
+from functools import reduce
+from types import GenericAlias, UnionType
+from dataclasses import (
+    dataclass,
+    fields,
+    make_dataclass,
+    is_dataclass,
+    MISSING,
+)
+from textwrap import dedent, indent
 from llama_cpp.llama_grammar import LlamaGrammar
 
 
+def convert_native_container_type(container_type, items_type):
+    items = convert_field_type(items_type)
+
+    mapping = {
+        list: {"type": "array", "items": items},
+        tuple: {"type": "array", "items": items},
+        dict: {"type": "object", "additionalProperties": items},
+        set: {"type": "array", "uniqueItems": True, "items": items},
+        frozenset: {"type": "array", "uniqueItems": True, "items": items},
+    }
+    return mapping[container_type]
+
+
+def convert_generic_alias(field_type):
+    container_type = field_type.__origin__
+    items_type = field_type.__args__
+
+    if len(items_type) != 1:
+        raise NotImplementedError("Complex annotations are not supported")
+
+    items_type = items_type[0]
+
+    return convert_native_container_type(container_type, items_type)
+
+
+def convert_union(field_type):
+    available_types = field_type.__args__
+    return {"anyOf": [convert_field_type(t) for t in available_types]}
+
+
+def convert_complex_field_type(field_type):
+    if is_dataclass(field_type):
+        return to_json_schema(field_type)
+
+    elif type(field_type) is GenericAlias:
+        return convert_generic_alias(field_type)
+
+    elif type(field_type) is UnionType:
+        return convert_union(field_type)
+
+    elif issubclass(field_type, Enum):
+        return {
+            "type": "string",
+            "enum": list(field_type.__members__.keys()),
+        }
+
+    else:  #: Let the possibility of having a non specified object
+        return {
+            "type": "object",
+        }
+
+
+def convert_field_type(field_type):
+    mapping = {
+        int: {"type": "integer"},
+        str: {"type": "string"},
+        bool: {"type": "boolean"},
+        float: {"type": "number"},
+        complex: {"type": "string", "format": "complex-number"},
+        bytes: {"type": "string", "contentEncoding": "base64"},
+    }
+
+    if field_type in mapping:
+        return mapping[field_type]
+    else:
+        return convert_complex_field_type(field_type)
+
+
 def to_json_schema(datacls):
-    def get_type(field_type):
-        if field_type == int:
-            return {"type": "integer"}
-        elif field_type == str:
-            return {"type": "string"}
-        elif field_type == bool:
-            return {"type": "boolean"}
-        elif field_type == float:
-            return {"type": "number"}
-        elif field_type == complex:
-            return {"type": "string", "format": "complex-number"}
-        elif field_type == bytes:
-            return {"type": "string", "contentEncoding": "base64"}
-        elif field_type == tuple:
-            return {"type": "array", "items": {}}
-        elif field_type.__name__ == "set":
-            return {
-                "type": "array",
-                "uniqueItems": True,
-                "items": get_type(field_type.__args__[0]),
-            }
-        elif field_type.__name__ == "list":
-            return {
-                "type": "array",
-                "items": get_type(field_type.__args__[0]),
-            }
-        elif isinstance(field_type, typing._GenericAlias):
-            if field_type._name == "List":
-                return {
-                    "type": "array",
-                    "items": get_type(field_type.__args__[0]),
-                }
-            elif field_type._name == "Dict":
-                return {
-                    "type": "object",
-                    "additionalProperties": get_type(field_type.__args__[1]),
-                }
-        elif dataclasses.is_dataclass(field_type):
-            return to_json_schema(field_type)
-        elif issubclass(field_type, Enum):
-            return {
-                "type": "string",
-                "enum": list(field_type.__members__.keys()),
-            }
-        else:
-            return {"type": "object"}
+    if callable(getattr(datacls, "json_schema", None)):
+        return datacls.json_schema()
 
     properties = {}
-    required = []
-    for field in dataclasses.fields(datacls):
-        properties[field.name] = get_type(field.type)
-        if (
-            field.default == dataclasses.MISSING
-            and field.default_factory == dataclasses.MISSING
-        ):
-            required.append(field.name)
+    required_fields = []
+    for field in fields(datacls):
+        properties[field.name] = convert_field_type(field.type)
 
-    return {"type": "object", "properties": properties, "required": required}
+        no_default = field.default == MISSING
+        no_default_factory = field.default_factory == MISSING
+        required = no_default and no_default_factory
+
+        if required:
+            required_fields.append(field.name)
+
+    return {
+        "type": "object",
+        "title": datacls.__name__,
+        "description": datacls.__doc__,
+        "properties": properties,
+        "required": required_fields,
+    }
 
 
-def from_dict(cls, data):
-    if dataclasses.is_dataclass(cls):
-        field_types = {f.name: f.type for f in dataclasses.fields(cls)}
+def from_dict(cls, attrs):
+    if is_dataclass(cls):
+        field_types = {f.name: f.type for f in fields(cls)}
         return cls(
-            **{k: from_dict(field_types[k], v) for k, v in data.items()}
+            **{k: from_dict(field_types[k], v) for k, v in attrs.items()}
         )
+
+    elif type(cls) is UnionType:
+        return attrs
+
     elif cls.__name__ == "list":
-        return [from_dict(cls.__args__[0], v) for v in data]
+        return [from_dict(cls.__args__[0], v) for v in attrs]
+
     elif cls.__name__ == "set":
-        return set([from_dict(cls.__args__[0], v) for v in data])
-    elif isinstance(cls, typing._GenericAlias):
-        if cls._name == "List":
-            return [from_dict(cls.__args__[0], v) for v in data]
-        elif cls._name == "Dict":
-            return {k: from_dict(cls.__args__[1], v) for k, v in data.items()}
+        return set([from_dict(cls.__args__[0], v) for v in attrs])
+
     elif issubclass(cls, Enum):
-        return getattr(cls, data)
+        return getattr(cls, attrs)
+
     else:
-        return data
-
-
-SPACE_RULE = '" "?'
-
-PRIMITIVE_RULES = {
-    "boolean": '("true" | "false") space',
-    "number": '("-"? ([0-9] | [1-9] [0-9]*)) ("." [0-9]+)? ([eE] [-+]? [0-9]+)? space',
-    "integer": '("-"? ([0-9] | [1-9] [0-9]*)) space',
-    "string": r""" "\"" (
-        [^"\\] |
-        "\\" (["\\/bfnrt] | "u" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F])
-      )* "\"" space """,
-    "null": '"null" space',
-}
-
-INVALID_RULE_CHARS_RE = re.compile(r"[^a-zA-Z0-9-]+")
-GRAMMAR_LITERAL_ESCAPE_RE = re.compile(r'[\r\n"]')
-GRAMMAR_LITERAL_ESCAPES = {"\r": "\\r", "\n": "\\n", '"': '\\"'}
-
-
-class SchemaConverter:
-    def __init__(self, prop_order):
-        self._prop_order = prop_order
-        self._rules = {"space": SPACE_RULE}
-
-    def _format_literal(self, literal):
-        escaped = GRAMMAR_LITERAL_ESCAPE_RE.sub(
-            lambda m: GRAMMAR_LITERAL_ESCAPES.get(m.group(0)),
-            json.dumps(literal),
-        )
-        return f'"{escaped}"'
-
-    def _add_rule(self, name, rule):
-        esc_name = INVALID_RULE_CHARS_RE.sub("-", name)
-        if esc_name not in self._rules or self._rules[esc_name] == rule:
-            key = esc_name
-        else:
-            i = 0
-            while f"{esc_name}{i}" in self._rules:
-                i += 1
-            key = f"{esc_name}{i}"
-        self._rules[key] = rule
-        return key
-
-    def visit(self, schema, name):
-        schema_type = schema.get("type")
-        rule_name = name or "root"
-
-        if "oneOf" in schema or "anyOf" in schema:
-            rule = " | ".join(
-                (
-                    self.visit(alt_schema, f'{name}{"-" if name else ""}{i}')
-                    for i, alt_schema in enumerate(
-                        schema.get("oneOf") or schema["anyOf"]
-                    )
-                )
-            )
-            return self._add_rule(rule_name, rule)
-
-        elif "const" in schema:
-            return self._add_rule(
-                rule_name, self._format_literal(schema["const"])
-            )
-
-        elif "enum" in schema:
-            rule = " | ".join(
-                (self._format_literal(v) for v in schema["enum"])
-            )
-            return self._add_rule(rule_name, rule)
-
-        elif schema_type == "object" and "properties" in schema:
-            # TODO: `required` keyword
-            prop_order = self._prop_order
-            prop_pairs = sorted(
-                schema["properties"].items(),
-                # sort by position in prop_order (if specified) then by key
-                key=lambda kv: (prop_order.get(kv[0], len(prop_order)), kv[0]),
-            )
-
-            rule = '"{" space'
-            for i, (prop_name, prop_schema) in enumerate(prop_pairs):
-                prop_rule_name = self.visit(
-                    prop_schema, f'{name}{"-" if name else ""}{prop_name}'
-                )
-                if i > 0:
-                    rule += ' "," space'
-                rule += rf' {self._format_literal(prop_name)} space ":" space {prop_rule_name}'
-            rule += ' "}" space'
-
-            return self._add_rule(rule_name, rule)
-
-        elif schema_type == "array" and "items" in schema:
-            # TODO `prefixItems` keyword
-            item_rule_name = self.visit(
-                schema["items"], f'{name}{"-" if name else ""}item'
-            )
-            rule = f'"[" space ({item_rule_name} ("," space {item_rule_name})*)? "]" space'
-            return self._add_rule(rule_name, rule)
-
-        else:
-            assert (
-                schema_type in PRIMITIVE_RULES
-            ), f"Unrecognized schema: {schema}"
-            return self._add_rule(
-                "root" if rule_name == "root" else schema_type,
-                PRIMITIVE_RULES[schema_type],
-            )
-
-    def format_grammar(self):
-        return "\n".join(
-            (f"{name} ::= {rule}" for name, rule in self._rules.items())
-        )
+        return attrs
 
 
 def to_grammar(schema):
-    converter = SchemaConverter({})
-    converter.visit(schema, "")
-    grammar_string = converter.format_grammar()
-    return LlamaGrammar.from_string(grammar_string, verbose=False)
+    return LlamaGrammar.from_json_schema(json.dumps(schema), verbose=False)
+
+
+def make_tool(datacls):
+    interface_schema = to_json_schema(datacls)
+    tool_schema = {
+        "type": "object",
+        "properties": {
+            "name": datacls.__name__,
+            "description": datacls.__doc__.strip(),
+            "parameters": interface_schema,
+        },
+    }
+    return tool_schema
+
+
+def make_tools(providers):
+    return [to_json_schema(provider) for provider in providers]
+
+
+def make_helper(provider):
+    name = f"name: {provider.__name__}"
+    doc = f"description: {dedent(provider.__doc__.strip())}"
+    light_schema = indent(
+        "\n".join(
+            [
+                (
+                    f"{f.name} ({f.type.__name__}) "
+                    f"{'(required)' if f.default == MISSING and f.default_factory == MISSING else ''}"
+                )
+                for f in fields(provider)
+            ]
+        ),
+        "  ",
+    )
+
+    return "\n".join((name, doc, "inputs:", light_schema))
+
+
+def make_tool_helper(providers):
+    return "\n------\n\n".join(
+        ["Available tools:"]
+        + [make_helper(provider) for provider in providers]
+    )
+
+
+def make_selection_tool(providers):
+    providers_registry = {
+        provider.__name__: provider for provider in providers
+    }
+    ProviderName = Enum(
+        "FunctionName", [provider.__name__ for provider in providers]
+    )
+
+    @dataclass
+    class EvaluationTool:
+        query_answerable_from_context: bool
+
+    @dataclass
+    class DetailedPlan:
+        user_query: str
+
+        step_1_query_analysis: str
+        step_1_function_name: ProviderName
+        step_1_function_arguments: reduce(lambda a, b: a | b, providers)
+
+        identified_entities: list[str]
+        missing_entities: list[str]
+        identified_implications: list[str]
+        identified_hypothesis: list[str]
+
+        step_2_analysis_evaluation: str
+        step_2_revised_plan: str
+        step_2_function_name: ProviderName
+        step_2_function_arguments: reduce(lambda a, b: a | b, providers)
+
+    @dataclass
+    class SelectionTool:
+        prompt = """
+        Then design an increasingly detailed plan
+        to fulfill the user's query.
+
+        # Step 1
+
+        - Analyze user's query and select a function
+        - Write the function arguments
+
+        # Step 2
+
+        - Evaluate the analysis of "Step 1"
+        - Write a revised plan with more details
+
+        # Guidelines
+
+        Entities are:
+        - specific
+        - present or missing
+
+        Relations are:
+        - implications
+        - hypothesis
+        """
+        detailed_plan: DetailedPlan
+
+        def execute(self):
+            trace = []
+            trace.append(
+                f"Running: {self.detailed_plan.step_2_function_name.name}"
+            )
+            trace.append(
+                f"Arguments: {self.detailed_plan.step_2_function_arguments}"
+            )
+
+            result = providers_registry[
+                self.detailed_plan.step_2_function_name.name
+            ](**self.detailed_plan.step_2_function_arguments)()
+
+            return "\n".join(trace + ["----", f"Result: {result}"])
+
+    return SelectionTool, EvaluationTool

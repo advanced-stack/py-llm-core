@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass, fields
-from typing import List
 import codecs
 import json
 
@@ -51,9 +50,9 @@ class Usage:
 @dataclass
 class Message:
     role: str
-    content: str
+    content: str = None
     function_call: dict = None
-    tool_calls: dict = None
+    tool_calls: list = None
     name: str = None
 
 
@@ -67,9 +66,6 @@ class ChatCompletionChoice:
     def from_iterable(cls, iterable):
         for item in iterable:
             message_attrs = item["message"]
-
-            # To ensure compatibility with other models, we stuff
-            # function calling in the message content.
 
             function_call = message_attrs.get("function_call")
             tool_calls = message_attrs.get("tool_calls")
@@ -85,6 +81,7 @@ class ChatCompletionChoice:
             message = Message(**item["message"])
             index = item["index"]
             finish_reason = item["finish_reason"]
+
             yield cls(
                 index=index, message=message, finish_reason=finish_reason
             )
@@ -96,7 +93,7 @@ class ChatCompletion:
     object: str
     created: int
     model: str
-    choices: List[ChatCompletionChoice]
+    choices: list[ChatCompletionChoice]
     usage: Usage
     system_fingerprint: str = None
     prompt_filter_results: dict = None

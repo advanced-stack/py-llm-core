@@ -41,6 +41,8 @@ class OpenAIGPTCodec(BaseTokenCodec):
             "gpt_4_1106_preview",
             "gpt_4_32k",
             "gpt_4o_2024_05_13",
+            "gpt_4o_mini",
+            "gpt_4o_mini_2024_07_18",
             #: dirty hack to quickly support mistral
             #: token count approximation using tiktoken
             "mistral_large_latest",

@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
+import traceback
 import platform
 import llama_cpp
+import dirtyjson
+import json
 
+from pathlib import Path
 from dataclasses import dataclass
 
 from .base import (
     LLMBase,
     ChatCompletion,
 )
-from ..schema import to_grammar
+from ..schema import (
+    to_grammar,
+    to_json_schema,
+    from_dict,
+    make_tools,
+    make_selection_tool,
+    make_tool_helper,
+)
 from ..settings import MODELS_CACHE_DIR
 
 
@@ -40,52 +50,23 @@ class LLaMACPPModel(LLMBase):
         del self.model
 
     def load_model(self):
-        if self.llama_cpp_kwargs is None:
-            self.llama_cpp_kwargs = {
-                "n_ctx": self.ctx_size,
-                "verbose": self.verbose,
-            }
-
-            if platform.system() == "Darwin" and platform.machine() == "arm64":
-                # Offload everything onto the GPU on MacOS
-                self.llama_cpp_kwargs["n_gpu_layers"] = 100
-                self.llama_cpp_kwargs["n_threads"] = 1
-
         model_path = str(Path(MODELS_CACHE_DIR) / self.name)
+        llama_cpp_kwargs = {
+            "n_ctx": self.ctx_size,
+            "verbose": self.verbose,
+        }
 
-        self.model = llama_cpp.Llama(model_path, **self.llama_cpp_kwargs)
+        if platform.system() == "Darwin" and platform.machine() == "arm64":
+            # Offload everything onto the GPU on MacOS
+            llama_cpp_kwargs["n_gpu_layers"] = 100
+            llama_cpp_kwargs["n_threads"] = 1
 
-    def ask(
-        self,
-        prompt,
-        history=None,
-        schema=None,
-        temperature=0,
-        **llama_cpp_kwargs,
-    ):
-        self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
+        if self.llama_cpp_kwargs:
+            llama_cpp_kwargs.update(self.llama_cpp_kwargs)
 
-        messages = [
-            {
-                "role": "system",
-                "content": self.system_prompt,
-            },
-        ]
-        if history:
-            messages += history
+        self.model = llama_cpp.Llama(model_path, **llama_cpp_kwargs)
 
-        messages.append(
-            {
-                "role": "user",
-                "content": prompt,
-            },
-        )
-
-        kwargs = {}
-        if schema:
-            grammar = to_grammar(schema)
-            kwargs = {"grammar": grammar}
-
+    def generate_completion(self, messages, temperature, grammar=None):
         # Allow to call `ask` and free up memory immediately
         model = getattr(self, "model", None)
 
@@ -93,18 +74,115 @@ class LLaMACPPModel(LLMBase):
             completion = model.create_chat_completion(
                 messages=messages,
                 temperature=temperature,
-                max_tokens=-1,
-                **kwargs,
+                grammar=grammar,
             )
         else:
             with self as wrapper:
                 completion = wrapper.model.create_chat_completion(
                     messages=messages,
                     temperature=temperature,
-                    **kwargs,
+                    grammar=grammar,
                 )
 
         return ChatCompletion.parse(completion)
+
+    def ask(self, prompt, history=(), schema=None, temperature=0, tools=None):
+        self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
+        incompatible_args = (schema is not None) and (tools is not None)
+        if incompatible_args:
+            raise ValueError(
+                "Cannot set both schema and tools at the same time"
+            )
+
+        if tools:
+            tool_selector, tool_evaluator = make_selection_tool(tools)
+            tool_selector_schema = to_json_schema(tool_selector)
+            tool_evaluator_schema = to_json_schema(tool_evaluator)
+            grammar = to_grammar(tool_selector_schema)
+            tool_evaluator_grammar = to_grammar(tool_evaluator_schema)
+            tool_helper = make_tool_helper(tools)
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": "Act deterministic and take logical steps. Use only available tools.",
+                },
+                *history,
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+                {
+                    "role": "assistant",
+                    "content": tool_helper,
+                },
+                {
+                    "role": "assistant",
+                    "content": tool_selector.prompt,
+                },
+            ]
+            completed = False
+
+            while not completed:
+                # Design plan
+                completion = self.generate_completion(
+                    messages, temperature, grammar
+                )
+                print(completion.choices[0].message.content)
+                attributes = dirtyjson.loads(
+                    completion.choices[0].message.content
+                )
+
+                instance = from_dict(tool_selector, attributes)
+
+                # Execute
+                try:
+                    result = instance.execute()
+                    print("result", result)
+                except Exception as e:
+                    traceback.print_exc()
+                    result = repr(e)
+
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": result,
+                    },
+                )
+
+                completion = self.generate_completion(
+                    messages, temperature, tool_evaluator_grammar
+                )
+                attributes = dirtyjson.loads(
+                    completion.choices[0].message.content
+                )
+
+                instance = from_dict(tool_evaluator, attributes)
+                completed = instance.query_answerable_from_context
+                print(completed)
+
+            return self.generate_completion(messages, temperature)
+
+        messages = [
+            {
+                "role": "system",
+                "content": self.system_prompt,
+            },
+        ]
+        messages.extend(history)
+
+        messages.append(
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        )
+        grammar = None
+
+        if schema:
+            grammar = to_grammar(schema)
+
+        return self.generate_completion(messages, temperature, grammar)
 
 
 @dataclass

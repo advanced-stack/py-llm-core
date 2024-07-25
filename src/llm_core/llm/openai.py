@@ -17,7 +17,7 @@ from ..settings import (
 
 
 def create_chat_completion(
-    model, messages, temperature, max_tokens=1000, **kwargs
+    model, messages, temperature, max_tokens=1000, tools=None, tool_choice=None
 ):
     default_timeout = httpx.Timeout(DEFAULT_TIMEOUT, write=10.0, connect=2.0)
 
@@ -42,7 +42,8 @@ def create_chat_completion(
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
-        **kwargs,
+        tools=tools,
+        tool_choice=tool_choice,
     )
 
     return completion
@@ -71,7 +72,12 @@ class OpenAIChatModel(LLMBase):
             return 8_000
         elif self.name == "gpt-4-32k":
             return 32_000
-        elif self.name in ("gpt-4-1106-preview", "gpt-4o-2024-05-13"):
+        elif self.name in (
+            "gpt-4-1106-preview",
+            "gpt-4o-2024-05-13",
+            "gpt-4o-mini-2024-07-18",
+            "gpt-4o-mini",
+        ):
             return 128_000
         else:
             raise KeyError("Unsupported model")
@@ -92,12 +98,7 @@ class OpenAIChatModel(LLMBase):
         #: Reduce by 10 percent the maximum tokens to be generated to take into
         #: account inaccuracies of sanitize_prompt (especially the schema token
         #: consumption)
-
-        #: this needs refactoring
-        if self.name == "gpt-4o-2024-05-13":
-            max_tokens = 4_000
-        else:
-            max_tokens = int(0.9 * max_tokens)
+        max_tokens = min(int(0.9 * max_tokens), 4000)
 
         messages = [
             {
@@ -135,6 +136,49 @@ class OpenAIChatModel(LLMBase):
             temperature=temperature,
             max_tokens=max_tokens,
             **kwargs,
+        )
+
+        return ChatCompletion.parse(completion.dict())
+
+    def ask_with_tools(
+        self,
+        prompt,
+        history=None,
+        schema=None,
+        temperature=0,
+    ):
+        max_tokens = self.sanitize_prompt(
+            prompt=prompt,
+            history=history,
+            schema=schema,
+        )
+
+        #: Reduce by 10 percent the maximum tokens to be generated to take into
+        #: account inaccuracies of sanitize_prompt (especially the schema token
+        #: consumption)
+        max_tokens = min(int(0.9 * max_tokens), 4000)
+
+        messages = [
+            {
+                "role": "system",
+                "content": self.system_prompt,
+            },
+        ]
+        if history:
+            messages += history
+
+        messages.append(
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        )
+
+        completion = create_chat_completion(
+            model=self.name,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
         return ChatCompletion.parse(completion.dict())
