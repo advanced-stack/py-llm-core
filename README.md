@@ -56,6 +56,8 @@ wget https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/
 
 ### Troubleshooting
 
+The following workaround should no longer be necessary:
+
 The `llama-cpp-python` dependency may improperly detects the architecture and raise an error `an incompatible architecture (have 'x86_64', need 'arm64'))`.
 
 If that's the case, run the following in your virtual env:
@@ -863,6 +865,7 @@ ChatCompletion(
 
 ## Changelog
 
+- 2.8.13: Rewrite of the function calling to add support for tools (OpenAI and LLaMA compatible)
 - 2.8.11: Add support for NuExtract models
 - 2.8.10: Add gpt-4o-2024-05-13
 - 2.8.5: Fix model path building

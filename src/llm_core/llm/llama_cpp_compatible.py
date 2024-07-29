@@ -3,7 +3,6 @@ import traceback
 import platform
 import llama_cpp
 import dirtyjson
-import json
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -14,11 +13,8 @@ from .base import (
 )
 from ..schema import (
     to_grammar,
-    to_json_schema,
     from_dict,
-    make_tools,
     make_selection_tool,
-    make_tool_helper,
 )
 from ..settings import MODELS_CACHE_DIR
 
@@ -66,7 +62,7 @@ class LLaMACPPModel(LLMBase):
 
         self.model = llama_cpp.Llama(model_path, **llama_cpp_kwargs)
 
-    def generate_completion(self, messages, temperature, grammar=None):
+    def _generate_completion(self, messages, temperature, grammar=None):
         # Allow to call `ask` and free up memory immediately
         model = getattr(self, "model", None)
 
@@ -77,8 +73,8 @@ class LLaMACPPModel(LLMBase):
                 grammar=grammar,
             )
         else:
-            with self as wrapper:
-                completion = wrapper.model.create_chat_completion(
+            with self as on_demand_wrapper:
+                completion = on_demand_wrapper.model.create_chat_completion(
                     messages=messages,
                     temperature=temperature,
                     grammar=grammar,
@@ -88,80 +84,71 @@ class LLaMACPPModel(LLMBase):
 
     def ask(self, prompt, history=(), schema=None, temperature=0, tools=None):
         self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
-        incompatible_args = (schema is not None) and (tools is not None)
-        if incompatible_args:
-            raise ValueError(
-                "Cannot set both schema and tools at the same time"
-            )
+
+        grammar = None
+        if schema:
+            grammar = to_grammar(schema)
 
         if tools:
-            tool_selector, tool_evaluator = make_selection_tool(tools)
-            tool_selector_schema = to_json_schema(tool_selector)
-            tool_evaluator_schema = to_json_schema(tool_evaluator)
-            grammar = to_grammar(tool_selector_schema)
-            tool_evaluator_grammar = to_grammar(tool_evaluator_schema)
-            tool_helper = make_tool_helper(tools)
+            tool_selector = make_selection_tool(tools)
 
+            system_prompt_override = (
+                "Act deterministic and take logical steps."
+                "Use only available tools."
+            )
             messages = [
                 {
                     "role": "system",
-                    "content": "Act deterministic and take logical steps. Use only available tools.",
+                    "content": system_prompt_override,
+                },
+                {
+                    "role": "system",
+                    "content": system_prompt_override,
                 },
                 *history,
+                {
+                    "role": "assistant",
+                    "content": tool_selector.helpers,
+                },
                 {
                     "role": "user",
                     "content": prompt,
                 },
                 {
                     "role": "assistant",
-                    "content": tool_helper,
-                },
-                {
-                    "role": "assistant",
                     "content": tool_selector.prompt,
                 },
             ]
-            completed = False
 
-            while not completed:
-                # Design plan
-                completion = self.generate_completion(
-                    messages, temperature, grammar
-                )
-                print(completion.choices[0].message.content)
-                attributes = dirtyjson.loads(
-                    completion.choices[0].message.content
-                )
+            completion = self._generate_completion(
+                messages, temperature, tool_selector.grammar
+            )
 
-                instance = from_dict(tool_selector, attributes)
+            attributes = dirtyjson.loads(completion.choices[0].message.content)
 
-                # Execute
-                try:
-                    result = instance.execute()
-                    print("result", result)
-                except Exception as e:
-                    traceback.print_exc()
-                    result = repr(e)
+            instance = from_dict(tool_selector, attributes)
 
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": result,
-                    },
-                )
+            try:
+                result = instance.execute()
+            except Exception as e:
+                traceback.print_exc()
+                result = repr(e)
 
-                completion = self.generate_completion(
-                    messages, temperature, tool_evaluator_grammar
-                )
-                attributes = dirtyjson.loads(
-                    completion.choices[0].message.content
-                )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": instance.detailed_plan.format_results(result),
+                },
+            )
 
-                instance = from_dict(tool_evaluator, attributes)
-                completed = instance.query_answerable_from_context
-                print(completed)
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "Answer very concisely to the user's query",
+                },
+            )
 
-            return self.generate_completion(messages, temperature)
+            return self._generate_completion(messages, temperature, grammar)
 
         messages = [
             {
@@ -177,12 +164,8 @@ class LLaMACPPModel(LLMBase):
                 "content": prompt,
             },
         )
-        grammar = None
 
-        if schema:
-            grammar = to_grammar(schema)
-
-        return self.generate_completion(messages, temperature, grammar)
+        return self._generate_completion(messages, temperature, grammar)
 
 
 @dataclass

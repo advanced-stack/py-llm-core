@@ -7,7 +7,6 @@ from types import GenericAlias, UnionType
 from dataclasses import (
     dataclass,
     fields,
-    make_dataclass,
     is_dataclass,
     MISSING,
 )
@@ -172,7 +171,7 @@ def make_helper(provider):
 
 
 def make_tool_helper(providers):
-    return "\n------\n\n".join(
+    return "\n------\n".join(
         ["Available tools:"]
         + [make_helper(provider) for provider in providers]
     )
@@ -187,13 +186,7 @@ def make_selection_tool(providers):
     )
 
     @dataclass
-    class EvaluationTool:
-        query_answerable_from_context: bool
-
-    @dataclass
     class DetailedPlan:
-        user_query: str
-
         step_1_query_analysis: str
         step_1_function_name: ProviderName
         step_1_function_arguments: reduce(lambda a, b: a | b, providers)
@@ -208,11 +201,50 @@ def make_selection_tool(providers):
         step_2_function_name: ProviderName
         step_2_function_arguments: reduce(lambda a, b: a | b, providers)
 
+        def format_results(self, results):
+            return dedent(
+                f"""# Detailed Plan
+
+                ## Step 1: Query Analysis
+                Query Analysis: {self.step_1_query_analysis}
+
+                Function Name: {self.step_1_function_name}
+
+                Function Arguments: {self.step_1_function_arguments}
+
+                ## Identified Entities
+                {', '.join(self.identified_entities)}
+
+                ## Missing Entities
+                {', '.join(self.missing_entities)}
+
+                ## Identified Implications
+                {', '.join(self.identified_implications)}
+
+                ## Identified Hypothesis
+                {', '.join(self.identified_hypothesis)}
+
+                ## Step 2: Analysis Evaluation
+                Analysis Evaluation: {self.step_2_analysis_evaluation}
+
+                Revised Plan: {self.step_2_revised_plan}
+
+                Function Name: {self.step_2_function_name}
+
+                Function Arguments: {self.step_2_function_arguments}
+
+                ## Execution trace
+
+                Results:
+
+                {results}
+                """
+            )
+
     @dataclass
     class SelectionTool:
         prompt = """
-        Then design an increasingly detailed plan
-        to fulfill the user's query.
+        Design a very detailed plan to fulfill the user's query.
 
         # Step 1
 
@@ -239,16 +271,30 @@ def make_selection_tool(providers):
         def execute(self):
             trace = []
             trace.append(
-                f"Running: {self.detailed_plan.step_2_function_name.name}"
+                f"The execution of the function: {self.detailed_plan.step_2_function_name.name}"
             )
-            trace.append(
-                f"Arguments: {self.detailed_plan.step_2_function_arguments}"
+
+            arguments = ",".join(
+                [
+                    f"{k}={v}"
+                    for k, v in self.detailed_plan.step_2_function_arguments.items()
+                ]
             )
+
+            trace.append(f"with arguments: {arguments}")
 
             result = providers_registry[
                 self.detailed_plan.step_2_function_name.name
             ](**self.detailed_plan.step_2_function_arguments)()
 
-            return "\n".join(trace + ["----", f"Result: {result}"])
+            trace.append(f"gave the result: `{result}`")
+            return " ".join(trace)
 
-    return SelectionTool, EvaluationTool
+    schema = to_json_schema(SelectionTool)
+    grammar = to_grammar(schema)
+
+    SelectionTool.schema = schema
+    SelectionTool.grammar = grammar
+    SelectionTool.helpers = make_tool_helper(providers)
+
+    return SelectionTool
