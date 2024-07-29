@@ -220,7 +220,7 @@ Hash(
 )
 ```
 
-#### Overview
+#### Assistants module overview
 
 The `assistants` module provides a concise syntax to create features using both
 large language models capabilities and structured outputs.
