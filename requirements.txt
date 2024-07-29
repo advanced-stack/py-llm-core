@@ -2,6 +2,6 @@ openai>=1.37
 tiktoken
 jsonschema
 dirtyjson
-llama-cpp-python>=0.2.8
+llama-cpp-python>=0.2.84
 python-decouple
 mistralai
