@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 import httpx
-from openai import AzureOpenAI, OpenAI
+import traceback
+import dirtyjson
 
+from openai import AzureOpenAI, OpenAI
 from dataclasses import dataclass
 
 from .base import (
     LLMBase,
     ChatCompletion,
+)
+
+from ..schema import (
+    from_dict,
+    make_selection_tool,
 )
 
 from ..settings import (
@@ -16,8 +23,23 @@ from ..settings import (
 )
 
 
-def create_chat_completion(
-    model, messages, temperature, max_tokens=1000, **kwargs
+def as_tool(json_schema):
+    return {
+        "type": "function",
+        "function": {
+            "name": json_schema["title"],
+            "description": json_schema["description"],
+            "parameters": json_schema,
+        },
+    }
+
+
+def _generate_completion(
+    model,
+    messages,
+    temperature,
+    tools=None,
+    tool_choice=None,
 ):
     default_timeout = httpx.Timeout(DEFAULT_TIMEOUT, write=10.0, connect=2.0)
 
@@ -41,11 +63,11 @@ def create_chat_completion(
         model=model_name,
         messages=messages,
         temperature=temperature,
-        max_tokens=max_tokens,
-        **kwargs,
+        tools=tools,
+        tool_choice=tool_choice,
     )
 
-    return completion
+    return ChatCompletion.parse(completion.dict())
 
 
 @dataclass
@@ -71,7 +93,12 @@ class OpenAIChatModel(LLMBase):
             return 8_000
         elif self.name == "gpt-4-32k":
             return 32_000
-        elif self.name in ("gpt-4-1106-preview", "gpt-4o-2024-05-13"):
+        elif self.name in (
+            "gpt-4-1106-preview",
+            "gpt-4o-2024-05-13",
+            "gpt-4o-mini-2024-07-18",
+            "gpt-4o-mini",
+        ):
             return 128_000
         else:
             raise KeyError("Unsupported model")
@@ -79,25 +106,16 @@ class OpenAIChatModel(LLMBase):
     def ask(
         self,
         prompt,
-        history=None,
+        history=(),
         schema=None,
         temperature=0,
+        tools=None,
     ):
-        max_tokens = self.sanitize_prompt(
+        self.sanitize_prompt(
             prompt=prompt,
             history=history,
             schema=schema,
         )
-
-        #: Reduce by 10 percent the maximum tokens to be generated to take into
-        #: account inaccuracies of sanitize_prompt (especially the schema token
-        #: consumption)
-
-        #: this needs refactoring
-        if self.name == "gpt-4o-2024-05-13":
-            max_tokens = 4_000
-        else:
-            max_tokens = int(0.9 * max_tokens)
 
         messages = [
             {
@@ -115,26 +133,99 @@ class OpenAIChatModel(LLMBase):
             },
         )
 
-        kwargs = {}
+        if tools:
+            tool_selector = make_selection_tool(tools)
+            tools = [as_tool(tool_selector.schema)]
+
+            system_prompt_override = (
+                "Act deterministic and take logical steps."
+                "Use only available tools."
+            )
+            messages = [
+                {
+                    "role": "system",
+                    "content": system_prompt_override,
+                },
+                {
+                    "role": "system",
+                    "content": system_prompt_override,
+                },
+                *history,
+                {
+                    "role": "assistant",
+                    "content": tool_selector.helpers,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+                {
+                    "role": "assistant",
+                    "content": tool_selector.prompt,
+                },
+            ]
+
+            completion = _generate_completion(
+                model=self.name,
+                messages=messages,
+                temperature=temperature,
+                tools=tools,
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": tool_selector.__name__},
+                },
+            )
+
+            attributes = dirtyjson.loads(completion.choices[0].message.content)
+
+            instance = from_dict(tool_selector, attributes)
+
+            try:
+                result = instance.execute()
+            except Exception as e:
+                traceback.print_exc()
+                result = repr(e)
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": instance.detailed_plan.format_results(result),
+                },
+            )
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "Answer very concisely to the user's query",
+                },
+            )
+
         if schema:
-            functions = {
-                "name": "PublishAnswer",
-                "description": "Publish the answer",
-                "parameters": schema,
+            tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "PublishAnswer",
+                        "description": "Publish the answer",
+                        "parameters": schema,
+                    },
+                }
+            ]
+            tool_choice = {
+                "type": "function",
+                "function": {"name": "PublishAnswer"},
             }
-            function_call = {"name": "PublishAnswer"}
 
-            kwargs = {
-                "functions": [functions],
-                "function_call": function_call,
-            }
+            return _generate_completion(
+                model=self.name,
+                messages=messages,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
 
-        completion = create_chat_completion(
+        return _generate_completion(
             model=self.name,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,
-            **kwargs,
         )
-
-        return ChatCompletion.parse(completion.dict())
