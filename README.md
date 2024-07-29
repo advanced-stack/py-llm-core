@@ -2,39 +2,40 @@
 
 ## Overview
 
-PyLLMCore is a light-weighted interface with Large Language Models
-with native support for [llama.cpp](http://github.com/ggerganov/llama.cpp), OpenAI API and Azure deployments.
+PyLLMCore is a light-weighted interface with Large Language Models.
+
+It comes with native support:
+- OpenAI (Official API + Azure)
+- MistralAI (Official API + Azure)
+- Open weights models (GGUF) thanks to `llama-cpp-python` bindings
 
 ## Expected benefits and reasons to use PyLLMCore
 
+- Simple to use and to understand
 - Pythonic API
-- Simple to use
-- Structures *everywhere* provided by the standard library `dataclasses` module
-- High-level API with the `assistants` module
+- As little dependencies as possible
+- Structures are *everywhere* provided by the standard library `dataclasses` module
 - Easy swapping between models
+- High-level API with the `assistants` module (these higher-level utility classes may be moved to a dedicated package)
 
 ## Why you shouldn't use PyLLMCore
 
 - You need a whole framework: Take a look at [langchain](https://github.com/langchain-ai/langchain)
 - You need tremendous performance: Take a look at [vllm](https://github.com/vllm-project/vllm)
 - You want/need to use Pydantic and don't use the `dataclasses` module
-
-## Models supported
-
-- All open weights models supported by [llama.cpp](http://github.com/ggerganov/llama.cpp) will be compatible.
-- OpenAI / Azure compatible APIs
-- Mistral Large through La Plateforme or Azure
+- You need Python 3.8 or older (PyLLMCore requires at least 3.9)
 
 ## Use cases
 
-PyLLMCore covers a narrow range of use cases and serves as a building brick:
+PyLLMCore has evolved to covers a wider range of use cases and serves as a building brick:
 
 - Parsing: see the `parsers` module
+- Function calling or using tools
+- Context size management: see the `splitters` module
+- Tokenizing: see the `token_codecs` module
 - Summarizing: see the `assistants.summarizers` module
 - Question answering: see the `assistants.analyst` module
 - Hallucinations reduction: see the `assistants.verifiers` module
-- Context size management: see the `splitters` module
-- Tokenizing: see the `token_codecs` module
 
 
 ## Install
@@ -44,130 +45,42 @@ PyLLMCore covers a narrow range of use cases and serves as a building brick:
 ```shell
 pip install py-llm-core
 
-# Add you OPENAI_API_KEY to the environment
+#: To use OpenAI models, set your API key
 export OPENAI_API_KEY=sk-<replace with your actual api key>
 
-# For local inference with GGUF models, store your models in MODELS_CACHE_DIR
+#: To use local models (i.e. offline - privately),
+#: store your models in ~/.cache/py-llm-core/models
+
+#: The following downloads the best models (you can use any GGUF models)
+#: LLaMA-3.1-8B (Quantized version Q4_K_M)
+#: NuExtract  (Quantized version Q8)
+#: Mistral 7B v0.3 (Quantized version Q4_K_M)
+
 mkdir -p ~/.cache/py-llm-core/models
-cd ~/.cache/py-llm-core/models
-wget https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf
+wget -O ~/.cache/py-llm-core/models/llama-8b-3.1-q4 \
+    https://huggingface.co/lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf?download=true
 
+wget -O ~/.cache/py-llm-core/models/nuextract-q8 \
+    https://huggingface.co/advanced-stack/NuExtract-GGUF/resolve/main/nuextract-q8.gguf?download=true
+
+wget -O ~/.cache/py-llm-core/models/mistral-7b-v0.3-q4 \
+    https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf?download=true
 ```
-
-### Troubleshooting
-
-The following workaround should no longer be necessary:
-
-The `llama-cpp-python` dependency may improperly detects the architecture and raise an error `an incompatible architecture (have 'x86_64', need 'arm64'))`.
-
-If that's the case, run the following in your virtual env:
-
-```shell
-CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64" pip3 install --upgrade --verbose --force-reinstall --no-cache-dir llama-cpp-python
-```
-
 
 ## Documentation
 
 ### Parsing
 
-#### Use Parser classes
-
-Available parsers:
-
-- `parsers.OpenAIParser`
-- `parsers.LLaMACPPParser`
-- `parsers.NuExtractParser`
-
-#### Using NuExtract model
-
-Getting the tiny model to use locally:
-
-```shell
-mkdir -p ~/.cache/py-llm-core/models
-cd ~/.cache/py-llm-core/models
-wget -O nuextract-tiny https://huggingface.co/advanced-stack/NuExtract-tiny-GGUF/resolve/main/nuextract-tiny-f16.gguf?download=true
-```
-
+You can use these following examples to extract information from raw text.
 
 ```python
 from dataclasses import dataclass
-from llm_core.parsers import NuExtractParser
 
-#: NuExtract model needs default values for the class fields
-@dataclass
-class Book:
-    title: str = ""
-    summary: str = ""
-    author: str = ""
-    published_year: int = ""
-
-
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-"""
-
-with NuExtractParser(Book) as parser:
-    response = parser.parse(text)
-    print(response)
-
-```
-
-#### Using a local model : Mistral AI Instruct
-
-```python
-from dataclasses import dataclass
 from llm_core.parsers import LLaMACPPParser
 
-@dataclass
-class Book:
-    title: str
-    summary: str
-    author: str
-    published_year: int
-
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-"""
-
-model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-
-with LLaMACPPParser(Book, model=model) as parser:
-    book = parser.parse(text)
-    print(book)
-```
-
-```python
-Book(
-    title='Foundation',
-    summary="""Foundation is a science fiction novel by American writer
-        Isaac Asimov. It is the first published in his Foundation Trilogy
-        (later expanded into the Foundation series). Foundation is a
-        cycle of five interrelated short stories, first published as a
-        single book by Gnome Press in 1951. Collectively they tell the
-        early story of the Foundation, an institute founded by 
-        psychohistorian Hari Seldon to preserve the best of galactic
-        civilization after the collapse of the Galactic Empire.""",
-    author='Isaac Asimov',
-    published_year=1951
-)
-```
-
-#### Using OpenAI
-
-```python
-from dataclasses import dataclass
-from llm_core.parsers import OpenAIParser
+# : You can use any one of the other available parsers
+# from llm_core.parsers import NuExtractParser (Smaller models available)
+# from llm_core.parsers import OpenAIParser (Requires an API key)
 
 
 @dataclass
@@ -187,98 +100,132 @@ an institute founded by psychohistorian Hari Seldon to preserve the best
 of galactic civilization after the collapse of the Galactic Empire.
 """
 
-
-with OpenAIParser(Book) as parser:
+with LLaMACPPParser(Book, model="mistral-7b-v0.3-q4") as parser:
     book = parser.parse(text)
     print(book)
+
+#: For NuExtractParser, the fields of the Book class shall have default values
+# with NuExtractParser(Book, model="nuextract-q8") as parser:
+#     book = parser.parse(text)
+#     print(book)
+
+# with OpenAIParser(Book, model="gpt-4o-mini") as parser:
+#     book = parser.parse(text)
+#     print(book)
 ```
 
-```python
-Book(
-    title='Foundation',
-    summary="""Foundation is a cycle of five interrelated
-    short stories, first published as a single book by Gnome Press in 1951.
-    Collectively they tell the early story of the Foundation, an institute
-    founded by psychohistorian Hari Seldon to preserve the best of galactic
-    civilization after the collapse of the Galactic Empire.""",
-    author='Isaac Asimov',
-    published_year=1951
-)
-```
-
-#### Using Azure OpenAI
-
-Using OpenAI Azure services can be enabled by following the steps:
-
-1. Create an Azure account
-2. Enable Azure OpenAI cognitive services
-3. Get the API key and the API endpoint provided
-4. Set the environment variable USE_AZURE_OPENAI to True (`export USE_AZURE_OPENAI=True`)
-5. Set the environment variable AZURE_OPENAI_ENDPOINT (see step 3)
-6. Set the environment variable AZURE_OPENAI_API_KEY (see step 3)
-7. Create a deployment where you use the model name from OpenAI. You'll need to remove dot signs, i.e. for the model `gpt-3.5-turbo-0613` create a deployment named `gpt-35-turbo-0613`.
-8. PyLLMCore will take care of removing the dot sign for you so you can use the same code base for both OpenAI and Azure.
-9. When calling Parser or Assistant classes, specify the model
-
-The following example uses Azure OpenAI:
-
-```shell
-export USE_AZURE_OPENAI=True
-export AZURE_OPENAI_API_KEY=< your api key >
-export AZURE_OPENAI_ENDPOINT=https://< your endpoint >.openai.azure.com/
-```
-
-```python
-from dataclasses import dataclass
-from llm_core.parsers import OpenAIParser
-
-
-@dataclass
-class Book:
-    title: str
-    summary: str
-    author: str
-    published_year: int
-
-
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-"""
-
-
-with OpenAIParser(Book, model="gpt-3.5-turbo-0613") as parser:
-    book = parser.parse(text)
-    print(book)
-```
-
-```python
-Book(
-    title='Foundation',
-    summary="""Foundation is a cycle of five interrelated
-    short stories, first published as a single book by Gnome Press in 1951.
-    Collectively they tell the early story of the Foundation, an institute
-    founded by psychohistorian Hari Seldon to preserve the best of galactic
-    civilization after the collapse of the Galactic Empire.""",
-    author='Isaac Asimov',
-    published_year=1951
-)
-```
 
 ### Perform advanced tasks
 
+#### Using tools a.k.a. Function calling
+
+We can make the LLM use a tool to enrich its context and produce a better answer.
+
+To use tools, the only thing you need to define is a dataclass and the `__call__`
+method and implement the required logic.
+
+Here's an example on how to add web search capabilities using [Brave Search API](https://brave.com/search/api/)
+
+```python
+import requests
+from decouple import config
+from dataclasses import dataclass
+
+from llm_core.llm import OpenAIChatModel
+
+
+@dataclass
+class WebSearchProvider:
+    query: str
+
+    def __call__(self):
+        url = "https://api.search.brave.com/res/v1/web/search"
+        headers = {"X-Subscription-Token": config("BRAVE_AI_API_KEY")}
+        response = requests.get(
+            url,
+            headers=headers,
+            params={
+                "q": self.query,
+                "extra_snippets": True
+            }
+        )
+
+        # Returns the top 5 results
+        return response.json()["web"]["results"][0:5]
+
+
+providers = [WebSearchProvider]
+
+llm = OpenAIChatModel(name="gpt-4o-mini")
+resp = llm.ask(
+    prompt="Who won the 400m men individual medley at the 2024 Olympics?",
+    tools=providers
+)
+
+print(resp.choices[0].message.content)
+```
+
+
+#### Using tools in conjunction with structured output
+
+Leveraging the structured output capabilities of PyLLMCore, you can combine both
+the use of tools the generation of an object.
+
+This means we can make the LLM use a tool to enrich its context and at the same time produce a structured output.
+
+Here's a simple example on how you can add computational capabilities:
+
+```python
+import hashlib
+from enum import Enum
+from dataclasses import dataclass
+from llm_core.assistants import OpenAIAssistant
+
+
+HashFunction = Enum("HashFunction", ["sha256", "md5"])
+
+
+@dataclass
+class HashProvider:
+    hash_function: HashFunction
+    content: str
+
+    def __call__(self):
+        hash_fn = getattr(hashlib, self.hash_function.name)
+        return hash_fn(self.content.encode('utf-8')).hexdigest()
+
+
+@dataclass
+class Hash:
+    system_prompt = "You are a helpful assistant"
+    prompt = "{prompt}"
+
+    hashed_content: str
+    hash_algorithm: HashFunction
+    hash_value: str
+
+    @classmethod
+    def ask(cls, prompt):
+        with OpenAIAssistant(cls, model="gpt-3.5-turbo") as assistant:
+            assistant.tools = [HashProvider]
+            response = assistant.process(prompt=prompt)
+            return response
+
+Hash.ask('Compute the sha for `py-llm-core`')
+
+Hash(
+    hashed_content='py-llm-core',
+    hash_algorithm=<HashFunction.sha256: 1>,
+    hash_value='38ec92d973268cb671e9cd98a2f5a7b8c4d451d87b61670c1fe236fd7777f708'
+)
+```
+
 #### Overview
 
-To perform generic tasks, you will use the `assistants` module that provides generic assistants:
+The `assistants` module provides a concise syntax to create features using both
+large language models capabilities and structured outputs.
 
-- `assistants.OpenAIAssistant`
-- `assistants.LLaMACPPAssistant`
-
-Using these assistants, you can take a look at how the utilities are built:
+You can see examples in the source code:
 
 - `assistants.analysts.Analyst`
 - `assistants.verifiers.Doubter`
@@ -286,26 +233,14 @@ Using these assistants, you can take a look at how the utilities are built:
 - `assistants.summarizers.Summarizer`
 
 
-#### Create your own utility
+#### Create your assistant class
 
-There are 3 items required to build and run a utility:
-
-- A language model (any compatible model)
-- An assistant class: This is where your logic is written
-- A results class: This is the structure you need. It also contains the prompt.
-
-Here is an example where `Recipe` is the results class. We'll use the 
-Mistral AI Instruct model.
+In this example, we create an assistant that takes a dish as an input and
+generate recipes in a structured manner.
 
 ```python
-from typing import List
 from dataclasses import dataclass
-
-# LLaMACPPAssistant is needed to instanciate Mistral Instruct
 from llm_core.assistants import LLaMACPPAssistant
-
-# Make sure that ~/.cache/py-llm-core/models contains the following file
-model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
 
 
 @dataclass
@@ -313,76 +248,25 @@ class RecipeStep:
     step_title: str
     step_instructions: str
 
+
 @dataclass
 class Recipe:
     system_prompt = "You are a world-class chef"
     prompt = "Write a detailed step-by-step recipe to make {dish}"
 
     title: str
-    steps: List[RecipeStep]
-    ingredients: List[str]
+    steps: list[RecipeStep]
+    ingredients: list[str]
 
-
-class Chef:
-    def generate_recipe(self, dish):
-        with LLaMACPPAssistant(Recipe, model=model) as assistant:
+    @classmethod
+    def from_dish(cls, dish):
+        with LLaMACPPAssistant(cls, model="mistral-7b-v0.3-q4") as assistant:
             recipe = assistant.process(dish=dish)
             return recipe
 
-chef = Chef()
-recipe = chef.generate_recipe("Boeuf bourguignon")
+
+recipe = Recipe.from_dish("Boeuf bourguignon")
 print(recipe)
-
-```
-
-```python
-Recipe(
-    title="Boeuf Bourguignon Recipe",
-    steps=[
-        RecipeStep(
-            step_title="Preheat the Oven",
-            step_instructions="Preheat the oven to 350°F.",
-        ),
-        RecipeStep(
-            step_title="Brown the Brisket",
-            step_instructions="In a large pot, heat the olive oil over me...",
-        ),
-        RecipeStep(
-            step_title="Cook the Onions and Garlic",
-            step_instructions="Remove the brisket from the pot and set it...",
-        ),
-        RecipeStep(
-            step_title="Simmer the Wine",
-            step_instructions="Add the red wine to the pot and stir to sc...",
-        ),
-        RecipeStep(
-            step_title="Bake in the Oven",
-            step_instructions="Return the brisket to the pot, along with ...",
-        ),
-        RecipeStep(
-            step_title="Finish Cooking",
-            step_instructions="After 2 hours, remove the aluminum foil an...",
-        ),
-        RecipeStep(
-            step_title="Serve",
-            step_instructions="Remove the brisket from the pot and let it...",
-        ),
-    ],
-    ingredients=[
-        "1 pound beef brisket",
-        "2 tablespoons olive oil",
-        "1 large onion, chopped",
-        "3 cloves garlic, minced",
-        "1 cup red wine",
-        "4 cups beef broth",
-        "2 cups heavy cream",
-        "1 teaspoon dried thyme",
-        "1 teaspoon dried rosemary",
-        "Salt and pepper to taste",
-    ],
-)
-
-
 ```
 
 #### Summarizing
@@ -393,7 +277,7 @@ from llm_core.assistants import Summarizer, LLaMACPPAssistant
 
 
 summarizer = Summarizer(
-    model="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
+    model="mistral-7b-v0.3-q4",
     assistant_cls=LLaMACPPAssistant
 )
 
@@ -405,20 +289,8 @@ partial_summary = summarizer.fast_summarize(text)
 # Iterative summaries on the whole content
 for summary in summarizer.summarize(text):
     print(summary)
-
 ```
 
-The partial summary generated is:
-
-```python
-SimpleSummary(
-    content="""The Foundation series is a science fiction book series written
-        by Isaac Asimov. It was first published as a series of short stories and
-        novellas in 1942-50, and subsequently in three collections in 1951-53.
-        ...
-    """
-)
-```
 
 #### Reduce hallucinations using the verifiers module
 
@@ -441,7 +313,7 @@ pizza_dough_recipe_url = (
     "https://raw.githubusercontent.com/hendricius/pizza-dough/main/README.md"
 )
 
-model = "mistral-7b-instruct-v0.1.Q4_K_M.gguf"
+model = "mistral-7b-v0.3-q4"
 assistant_cls = LLaMACPPAssistant
 
 # Utilities
@@ -450,15 +322,14 @@ doubter = Doubter(model, assistant_cls)
 verifier = ConsistencyVerifier(model, assistant_cls)
 
 # Fetch some content 
-splitter = TokenSplitter(model=model, chunk_size=3_000)
+splitter = TokenSplitter(model=model, chunk_size=4_000)
 pizza_dough_recipe = requests.get(pizza_dough_recipe_url).text
 context = splitter.first_extract(pizza_dough_recipe)
 
 
-query = "Write 3 advices when making pizza dough."
+query = "Write 3 recommendations on how to make the best pizza dough."
 
 analyst_response = analyst.ask(query, context)
-
 question_collection = doubter.verify(query, analyst_response.content)
 questions = question_collection.questions
 
@@ -472,101 +343,15 @@ for question, answer in zip(questions, answers):
     verifications = verifier.verify(
         question=question, context=context, answer=response.content
     )
-
-```
-
-Here is a summary of what's been printed:
-
-```txt
-> Baseline answer:
-
-When making pizza dough, it is important to choose high-protein flour such as bread or all-purpose flour.
-The dough should be mixed and kneaded for a long time to develop flavor and gluten.
-It is also important to let the dough rest and rise before shaping it into pizza balls.
-
-> Questions
-
-1. Is bread or all-purpose flour a good choice for making pizza dough?
-2. How long should the dough be mixed and kneaded for flavor development and gluten formation?
-3. Should the dough be allowed to rest and rise before shaping it into pizza balls?
-4. What is the purpose of mixing and kneading the dough?
-5. Is there a specific step in making pizza dough that can be skipped?
-
-> Consistency checks
-
-1.
-
-Bread or all-purpose flour is a good choice for making pizza dough.
-The rule of thumb is to pick a flour that has high protein content.
-
-AnswerConsistency(is_consistent=True, is_inferred_from_context=True)
-
-
-2.
-
-The dough should be mixed and kneaded for around 5 minutes.
-The mixing process starts the germination of the flour, which develops the flavor of the dough.
-Kneading helps to form the gluten network that gives the dough its elasticity and structure.
-
-AnswerConsistency(is_consistent=True, is_inferred_from_context=True)
-
-...
-
-```
-
-From there, you can further process answers to remove any hallucinations or inconsistencies.
-
-
-#### Using the assistants module
-
-The following example using the `assistants.analysts` module shows how to use assistants to generate a simple recommendation.
-
-```python
-from dataclasses import dataclass
-from llm_core.assistants import Analyst, Answer, LLaMACPPAssistant
-
-context = """
-Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-----
-The user likes the movie Interstellar
-"""
-
-@dataclass
-class Recommendation(Answer):
-    is_recommended: bool
-
-
-analyst = Analyst(
-    model="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-    assistant_cls=LLaMACPPAssistant,
-    results_cls=Recommendation,
-)
-
-response = analyst.ask("Should we recommend Foundation ?", context=context)
-print(response)
-```
-
-```python
-Recommendation(
-    content='Foundation is a science fiction novel by Isaac Asimov that tells the early story of the Foundation, an institute founded by psychohistorian Hari Seldon to preserve the best of galactic civilization after the collapse of the Galactic Empire. The user has not mentioned any specific reasons for liking or disliking the movie Interstellar, so it is difficult to determine if they would also enjoy Foundation. However, if the user enjoys science fiction and exploring complex ideas about the future of humanity, then Foundation may be a good recommendation.',
-    is_recommended=True
-)
 ```
 
 
 ## Tokenizer
 
-Tokenizers are registered as a codecs within the Python
-codecs registry :
+Tokenizers are registered as a codecs within the Python codecs registry :
 
 ```python
-import llm_core
+from llm_core.splitters import TokenSplitter
 import codecs
 
 text = """Foundation is a science fiction novel by American writer
@@ -578,45 +363,25 @@ an institute founded by psychohistorian Hari Seldon to preserve the best
 of galactic civilization after the collapse of the Galactic Empire.
 """
 
-
 # You can encode the text into tokens like that:
-
-
 # tokens = codecs.encode(text, 'gpt-3.5-turbo')
-tokens = codecs.encode(text, 'mistral-7b-instruct-v0.1.Q4_K_M.gguf')
+tokens = codecs.encode(text, 'mistral-7b-v0.3-q4')
 
-print(tokens)
-[19137, 374, 264, 8198, ... 627]
+token_length = len(tokens)
+print(token_length)
 
-print(len(tokens))
-
-100
-```
+# Chunking and splitting
 
 
-## Chunking and splitting
-
-```python
-from llm_core.splitters import TokenSplitter
-
-
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
-"""
-
-
-splitter = TokenSplitter(model="mistral-7b-instruct-v0.1.Q4_K_M.gguf", chunk_size=50, chunk_overlap=0)
+splitter = TokenSplitter(
+    model="mistral-7b-v0.3-q4",
+    chunk_size=50,
+    chunk_overlap=0
+)
 
 for chunk in splitter.chunkify(text):
     print(chunk)
-
 ```
-
 
 ## Classification and using enums
 
@@ -663,39 +428,14 @@ def ask(prompt):
         user_query = assistant.process(prompt=prompt)
         return user_query
 
-```
-
-```python
-In [2]: ask('Cancel all my meetings for the week')
-Out[2]: UserQuery(operation=<CRUDOperation.DELETE: 4>, target=<TargetItem.MEETING: 4>)
-
-In [3]: ask('What is the agenda ?')
-Out[3]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.MEETING: 4>)
-
-In [4]: ask('Schedule meeting for next monday')
-Out[4]: UserQuery(operation=<CRUDOperation.CREATE: 1>, target=<TargetItem.MEETING: 4>)
-
-In [5]: ask('When is my next meeting ?')
-Out[5]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.MEETING: 4>)
-
-# The classification went wrong here, so I tried a different formulation
-In [6]: ask('Todo: read the final report on the project LLMCore')
-Out[6]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.TASK: 2>)
-
-# Still no joy
-In [7]: ask('Task: read the final report on the project LLMCore')
-Out[7]: UserQuery(operation=<CRUDOperation.READ: 2>, target=<TargetItem.PROJECT: 1>)
-
-# Being just a little more specific and voilà !
-In [8]: ask('Add to my todo: read the final report on the project LLMCore')
-Out[8]: UserQuery(operation=<CRUDOperation.CREATE: 1>, target=<TargetItem.TASK: 2>)
+ask('Cancel all my meetings for the week')
 ```
 
 
 ## Synthetic dataset generation example
 
 ```python
-from typing import List
+from typing import list
 from enum import Enum
 from dataclasses import dataclass
 from llm_core.assistants import LLaMACPPAssistant
@@ -736,7 +476,7 @@ class UserQueryGenerator:
     Write {queries_count} new examples of what a user could have asked.
     
     """
-    user_queries: List[str]
+    user_queries: list[str]
 
     @classmethod
     def generate(cls, queries_count=10, existing_queries=()):
@@ -775,23 +515,9 @@ See the code in `examples/toulmin-model-argument-analysis.py`
 python3 examples/toulmin-model-argument-analysis.py
 ```
 
-```markdown
-**Claim**: All forms of CMC should be studied in order to fully understand how online communication effects relationships
-
-**Grounds**: Numerous studies have been conducted on various facets of Internet relationships, focusing on the levels of intimacy, closeness, different communication modalities, and the frequency of use of computer-mediated communication (CMC). However, contradictory results are suggested within this research mostly because only certain aspects of CMC are investigated.
-
-**Warrant**: CMC is defined and used as ‘email’ in creating feelings of closeness or intimacy. Other articles define CMC differently and, therefore, offer different results.
-
-**Qualifier**: The strength of the relationship was predicted best by FtF and phone communication, as participants rated email as an inferior means of maintaining personal relationships as compared to FtF and phone contacts.
-
-**Rebuttal**: Other studies define CMC differently and, therefore, offer different results.
-
-**Backing**: Cummings et al.'s (2002) research in relation to three other research articles
-```
-
 ## LLaVA - Multi modalities - Mistral Vision
 
-We can use a quantized version of the BakLLaVA model from [SkunkworksAI](https://github.com/SkunkworksAI) to process images.
+SkunkworksAI released the BakLLaVA model, which is a Mistral 7B instruct model augmented with vision capabilities [SkunkworksAI](https://github.com/SkunkworksAI).
 
 Download `BakLLaVA-1-Q4_K_M.gguf` and `BakLLaVA-1-clip-model.gguf` files from https://huggingface.co/advanced-stack/bakllava-mistral-v1-gguf/tree/main
 
@@ -829,38 +555,41 @@ llm.ask('Describe the image as accurately as possible', history=history)
 
 ```
 
-```python
-ChatCompletion(
-    id='chatcmpl-c1e49a42-fe96-49ba-a47b-991479f7d672',
-    object='chat.completion',
-    created=1699476989,
-    model='/Users/pas/.cache/py-llm-core/models/BakLLaVA-1-Q4_K_M.gguf',
-    choices=[
-        ChatCompletionChoice(
-            index=0,
-            message=Message(
-                role='assistant',
-                content='''The image features a brown background with large,
-                  bold text that reads
-                  "Understand, Learn, Build and Deploy LLM Projects."
+## Using Azure OpenAI
 
-                  This text is yellow.
+Using OpenAI Azure services can be enabled by following the steps:
 
-                  The words "Leverage AI Power Without Disclosing Your Data"
-                  are also written on the background, adding more information to the scene.
-            '''),
-            finish_reason='stop'
-        )
-    ],
-    usage=Usage(
-        prompt_tokens=630,
-        completion_tokens=62,
-        total_tokens=692
-    ),
-    system_fingerprint=None
-)
+1. Create an Azure account
+2. Enable Azure OpenAI cognitive services
+3. Get the API key and the API endpoint provided
+4. Set the environment variable USE_AZURE_OPENAI to True (`export USE_AZURE_OPENAI=True`)
+5. Set the environment variable AZURE_OPENAI_ENDPOINT (see step 3)
+6. Set the environment variable AZURE_OPENAI_API_KEY (see step 3)
+7. Create a deployment where you use the model name from OpenAI. You'll need to remove dot signs, i.e. for the model `gpt-3.5-turbo-0613` create a deployment named `gpt-35-turbo-0613`.
+8. PyLLMCore will take care of removing the dot sign for you so you can use the same code base for both OpenAI and Azure.
+9. When calling Parser or Assistant classes, specify the model
+
+The following example uses Azure OpenAI:
+
+```shell
+export USE_AZURE_OPENAI=True
+export AZURE_OPENAI_API_KEY=< your api key >
+export AZURE_OPENAI_ENDPOINT=https://< your endpoint >.openai.azure.com/
 ```
 
+## Troubleshooting
+
+### llama-cpp-installation failure (legacy)
+
+The following workaround should no longer be necessary:
+
+The `llama-cpp-python` dependency may improperly detects the architecture and raise an error `an incompatible architecture (have 'x86_64', need 'arm64'))`.
+
+If that's the case, run the following in your virtual env:
+
+```shell
+CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64" pip3 install --upgrade --verbose --force-reinstall --no-cache-dir llama-cpp-python
+```
 
 
 ## Changelog

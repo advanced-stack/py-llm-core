@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import List
 from dataclasses import dataclass
 
 
@@ -21,7 +20,7 @@ class QuestionCollection:
     if there are mistakes in the answer.
     """
 
-    questions: List[str]
+    questions: list[str]
 
 
 @dataclass

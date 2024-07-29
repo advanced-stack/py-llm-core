@@ -20,6 +20,10 @@ class BaseAssistant(BaseParser):
 
         self.model_wrapper.system_prompt = system_prompt
 
+        tools = getattr(self, "tools", None)
+        if tools:
+            self.completion_kwargs.update({"tools": tools})
+
         completion = self.model_wrapper.ask(
             prompt, schema=self.target_json_schema, **self.completion_kwargs
         )

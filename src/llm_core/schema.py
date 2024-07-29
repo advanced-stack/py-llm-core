@@ -7,6 +7,7 @@ from types import GenericAlias, UnionType
 from dataclasses import (
     dataclass,
     fields,
+    asdict,
     is_dataclass,
     MISSING,
 )
@@ -270,22 +271,25 @@ def make_selection_tool(providers):
 
         def execute(self):
             trace = []
-            trace.append(
-                f"The execution of the function: {self.detailed_plan.step_2_function_name.name}"
+
+            function_name = self.detailed_plan.step_2_function_name.name
+
+            trace.append(f"The execution of the function: {function_name}")
+
+            if is_dataclass(self.detailed_plan.step_2_function_arguments):
+                arguments = asdict(
+                    self.detailed_plan.step_2_function_arguments
+                )
+            else:
+                arguments = self.detailed_plan.step_2_function_arguments
+
+            formatted_arguments = ",".join(
+                [f"{k}={v}" for k, v in arguments.items()]
             )
 
-            arguments = ",".join(
-                [
-                    f"{k}={v}"
-                    for k, v in self.detailed_plan.step_2_function_arguments.items()
-                ]
-            )
+            trace.append(f"with arguments: {formatted_arguments}")
 
-            trace.append(f"with arguments: {arguments}")
-
-            result = providers_registry[
-                self.detailed_plan.step_2_function_name.name
-            ](**self.detailed_plan.step_2_function_arguments)()
+            result = providers_registry[function_name](**arguments)()
 
             trace.append(f"gave the result: `{result}`")
             return " ".join(trace)

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import List
 from dataclasses import dataclass
 from ..splitters import TokenSplitter
 
@@ -26,7 +25,7 @@ class SimpleSummary(Summary):
 
 @dataclass
 class DenseSummary(Summary):
-    missing_entities: List[str]
+    missing_entities: list[str]
 
 
 @dataclass
@@ -91,7 +90,7 @@ class DenserSummaryCollection:
 
     """
 
-    summaries: List[DenseSummary]
+    summaries: list[DenseSummary]
 
 
 @dataclass
