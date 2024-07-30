@@ -276,12 +276,24 @@ def make_selection_tool(providers):
 
             trace.append(f"The execution of the function: {function_name}")
 
+            #: This first branch is run when only one tool is available
+            #: In that case, step_2_function_arguments contains a populated
+            #: dataclass
             if is_dataclass(self.detailed_plan.step_2_function_arguments):
                 arguments = asdict(
                     self.detailed_plan.step_2_function_arguments
                 )
+                executable_partial = (
+                    self.detailed_plan.step_2_function_arguments
+                )
+
+            #: This second branch is run when several tools are available
+            #: In that case, step_2_function_arguments contains a mapping
             else:
                 arguments = self.detailed_plan.step_2_function_arguments
+                executable_partial = from_dict(
+                    providers_registry[function_name], arguments
+                )
 
             formatted_arguments = ",".join(
                 [f"{k}={v}" for k, v in arguments.items()]
@@ -289,7 +301,7 @@ def make_selection_tool(providers):
 
             trace.append(f"with arguments: {formatted_arguments}")
 
-            result = providers_registry[function_name](**arguments)()
+            result = executable_partial()
 
             trace.append(f"gave the result: `{result}`")
             return " ".join(trace)

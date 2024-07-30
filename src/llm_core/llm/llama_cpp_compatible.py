@@ -144,7 +144,7 @@ class LLaMACPPModel(LLMBase):
             messages.append(
                 {
                     "role": "assistant",
-                    "content": "Answer very concisely to the user's query",
+                    "content": "Answer concisely to the user's query (in the same language)",
                 },
             )
 

@@ -96,6 +96,7 @@ class OpenAIChatModel(LLMBase):
         elif self.name in (
             "gpt-4-1106-preview",
             "gpt-4o-2024-05-13",
+            "gpt-4o",
             "gpt-4o-mini-2024-07-18",
             "gpt-4o-mini",
         ):
@@ -177,7 +178,6 @@ class OpenAIChatModel(LLMBase):
             )
 
             attributes = dirtyjson.loads(completion.choices[0].message.content)
-
             instance = from_dict(tool_selector, attributes)
 
             try:
@@ -196,7 +196,7 @@ class OpenAIChatModel(LLMBase):
             messages.append(
                 {
                     "role": "assistant",
-                    "content": "Answer very concisely to the user's query",
+                    "content": "Answer concisely to the user's query (in the same language)",
                 },
             )
 

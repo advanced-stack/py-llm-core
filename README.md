@@ -594,7 +594,7 @@ CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64" pip3 install --upgrade --verbose --
 
 ## Changelog
 
-- 2.8.14: Bugfix
+- 2.8.15: Fixed a bug when using only one tool
 - 2.8.13: Rewrite of the function calling to add support for tools (OpenAI and LLaMA compatible)
 - 2.8.11: Add support for NuExtract models
 - 2.8.10: Add gpt-4o-2024-05-13
