@@ -5,7 +5,7 @@
 PyLLMCore v3 comes with breaking changes. The goal behind the v3 is to be able to take
 full advantages of LLMs as fast as possible (documentation takes 5 min to read).
 
-For developers using the 2.x versions, you may want to stick to the latest 2.8.15 version. However the 2.x branch won't be maintained (open an issue if you need help).
+For developers using the 2.x versions, you may want to stick to the latest 2.8.15 version. However the 2.x branch won't be maintained (open an issue if you need help migrating your project).
 
 The latest version comes with major simplifications to be even easier to use.
 
