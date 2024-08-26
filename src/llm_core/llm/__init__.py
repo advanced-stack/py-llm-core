@@ -1,12 +1,10 @@
 from .openai import OpenAIChatModel
-from .llama_cpp_compatible import LLaMACPPModel, LLaVACPPModel
-from .mistralai import MistralAILarge
-from .nuextract import NuExtractModel
+from .open_weights import OpenWeightsModel, load_model
+from .mistralai import MistralAIModel
 
 __all__ = [
     "OpenAIChatModel",
-    "LLaMACPPModel",
-    "LLaVACPPModel",
-    "MistralAILarge",
-    "NuExtractModel",
+    "MistralAIModel",
+    "OpenWeightsModel",
+    "load_model",
 ]

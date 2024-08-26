@@ -1,5 +1,5 @@
 import codecs
 
-from .token_codecs import lookup
+from .tokenizers import lookup
 
 codecs.register(lookup)

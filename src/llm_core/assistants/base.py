@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from textwrap import dedent
+from ..llm import load_model
 from ..parsers import (
     BaseParser,
     OpenAIParser,
-    LLaMACPPParser,
-    MistralAILargeParser,
+    OpenWeightsParser,
+    MistralAIParser,
 )
 
 
@@ -18,44 +19,41 @@ class BaseAssistant(BaseParser):
         system_prompt = dedent(self.system_prompt.format(**kwargs))
         prompt = dedent(self.prompt.format(**kwargs))
 
-        self.model_wrapper.system_prompt = system_prompt
+        self.llm.system_prompt = system_prompt
 
         tools = getattr(self, "tools", None)
-        if tools:
-            self.completion_kwargs.update({"tools": tools})
-
-        completion = self.model_wrapper.ask(
-            prompt, schema=self.target_json_schema, **self.completion_kwargs
+        completion = self.llm.ask(
+            prompt, schema=self.target_json_schema, tools=tools
         )
         instance = self.deserialize(completion.choices[0].message.content)
         return instance
 
 
 class OpenAIAssistant(BaseAssistant, OpenAIParser):
-    def __init__(self, target_cls, model="gpt-3.5-turbo", *args, **kwargs):
+    def __init__(self, target_cls, model="gpt-4o-mini", *args, **kwargs):
         super().__init__(target_cls, model=model, *args, **kwargs)
 
 
-class LLaMACPPAssistant(BaseAssistant, LLaMACPPParser):
+class MistralAIAssistant(BaseAssistant, MistralAIParser):
+    def __init__(self, target_cls, model="open-mistral-nemo", *args, **kwargs):
+        super().__init__(target_cls, model=model, *args, **kwargs)
+
+
+class OpenWeightsAssistant(BaseAssistant, OpenWeightsParser):
     def __init__(
         self,
         target_cls,
-        model="mistral",
-        llama_cpp_kwargs=None,
+        model="mistral-7b-v0.3-q4",
+        model_loader=load_model,
+        model_loader_kwargs=None,
         *args,
         **kwargs
     ):
         super().__init__(
             target_cls,
-            model=model,
-            llama_cpp_kwargs=llama_cpp_kwargs,
+            model="mistral-7b-v0.3-q4",
+            model_loader=load_model,
+            model_loader_kwargs=None,
             *args,
             **kwargs
         )
-
-
-class MistralAILargeAssistant(BaseAssistant, MistralAILargeParser):
-    def __init__(
-        self, target_cls, model="mistral-large-latest", *args, **kwargs
-    ):
-        super().__init__(target_cls, model=model, *args, **kwargs)

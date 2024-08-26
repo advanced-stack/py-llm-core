@@ -1,22 +1,33 @@
 # PyLLMCore
 
+## Important note
+
+PyLLMCore v3 comes with breaking changes. The goal behind the v3 is to be able to take
+full advantages of LLMs as fast as possible (documentation takes 5 min to read).
+
+For developers using the 2.x versions, you may want to stick to the latest 2.8.15 version. However the 2.x branch won't be maintained (contact me at pa.schembri@advanced-stack.com if you need help).
+
+The latest version comes with major simplifications to be even easier to use.
+
+See the following quick start guide.
+
 ## Overview
 
 PyLLMCore is a light-weighted interface with Large Language Models.
 
 It comes with native support:
-- OpenAI (Official API + Azure)
-- MistralAI (Official API + Azure)
-- Open weights models (GGUF) thanks to `llama-cpp-python` bindings
+- OpenAI
+- MistralAI
+- a wide range of open-weights models (GGUF) thanks to `llama-cpp-python` bindings
 
 ## Expected benefits and reasons to use PyLLMCore
 
 - Simple to use and to understand
 - Pythonic API
+- Easy hacking
 - As little dependencies as possible
 - Structures are *everywhere* provided by the standard library `dataclasses` module
 - Easy swapping between models
-- High-level API with the `assistants` module (these higher-level utility classes may be moved to a dedicated package)
 
 ## Why you shouldn't use PyLLMCore
 
@@ -29,13 +40,9 @@ It comes with native support:
 
 PyLLMCore has evolved to covers a wider range of use cases and serves as a building brick:
 
-- Parsing: see the `parsers` module
-- Function calling or using tools
-- Context size management: see the `splitters` module
-- Tokenizing: see the `token_codecs` module
-- Summarizing: see the `assistants.summarizers` module
-- Question answering: see the `assistants.analyst` module
-- Hallucinations reduction: see the `assistants.verifiers` module
+- Parsing raw content: see the `parsers` module
+- Tool and function calling: see the `assistants` module
+- Context window size management: see the `splitters` module
 
 
 ## Install
@@ -48,20 +55,16 @@ pip install py-llm-core
 #: To use OpenAI models, set your API key
 export OPENAI_API_KEY=sk-<replace with your actual api key>
 
-#: To use local models (i.e. offline - privately),
-#: store your models in ~/.cache/py-llm-core/models
+#: To use local models (i.e. completely offline),
+#: download and store your models in ~/.cache/py-llm-core/models/
 
-#: The following downloads the best models (you can use any GGUF models)
+#: The following commands download the best models (you can use any GGUF models)
 #: LLaMA-3.1-8B (Quantized version Q4_K_M)
-#: NuExtract  (Quantized version Q8)
 #: Mistral 7B v0.3 (Quantized version Q4_K_M)
 
 mkdir -p ~/.cache/py-llm-core/models
 wget -O ~/.cache/py-llm-core/models/llama-8b-3.1-q4 \
     https://huggingface.co/lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf?download=true
-
-wget -O ~/.cache/py-llm-core/models/nuextract-q8 \
-    https://huggingface.co/advanced-stack/NuExtract-GGUF/resolve/main/nuextract-q8.gguf?download=true
 
 wget -O ~/.cache/py-llm-core/models/mistral-7b-v0.3-q4 \
     https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf?download=true
@@ -76,13 +79,6 @@ You can use these following examples to extract information from raw text.
 ```python
 from dataclasses import dataclass
 
-from llm_core.parsers import LLaMACPPParser
-
-# : You can use any one of the other available parsers
-# from llm_core.parsers import NuExtractParser (Smaller models available)
-# from llm_core.parsers import OpenAIParser (Requires an API key)
-
-
 @dataclass
 class Book:
     title: str
@@ -90,34 +86,80 @@ class Book:
     author: str
     published_year: int
 
+@dataclass
+class BookCollection:
+    books: list[Book]
 
-text = """Foundation is a science fiction novel by American writer
-Isaac Asimov. It is the first published in his Foundation Trilogy (later
-expanded into the Foundation series). Foundation is a cycle of five
-interrelated short stories, first published as a single book by Gnome Press
-in 1951. Collectively they tell the early story of the Foundation,
-an institute founded by psychohistorian Hari Seldon to preserve the best
-of galactic civilization after the collapse of the Galactic Empire.
+
+text = """The Foundation series is a science fiction book series written by
+American author Isaac Asimov. First published as a series of short
+stories and novellas in 1942–50, and subsequently in three books in
+1951–53, for nearly thirty years the series was widely known as The
+Foundation Trilogy: Foundation (1951), Foundation and Empire (1952),
+and Second Foundation (1953). It won the one-time Hugo Award for "Best
+All-Time Series" in 1966. Asimov later added new volumes, with two
+sequels, Foundation's Edge (1982) and Foundation and Earth (1986), and
+two prequels, Prelude to Foundation (1988) and Forward the Foundation
+(1993).
+
+The premise of the stories is that in the waning days of a future
+Galactic Empire, the mathematician Hari Seldon devises the theory of
+psychohistory, a new and effective mathematics of sociology. Using
+statistical laws of mass action, it can predict the future of large
+populations. Seldon foresees the imminent fall of the Empire, which
+encompasses the entire Milky Way, and a dark age lasting 30,000 years
+before a second empire arises. Although the momentum of the Empire's
+fall is too great to stop, Seldon devises a plan by which "the
+onrushing mass of events must be deflected just a little" to
+eventually limit this interregnum to just one thousand years. The
+books describe some of the dramatic events of those years as they are
+shaped by the underlying political and social mechanics of Seldon's
+Plan.
 """
-
-with LLaMACPPParser(Book, model="mistral-7b-v0.3-q4") as parser:
-    book = parser.parse(text)
-    print(book)
-
-#: For NuExtractParser, the fields of the Book class shall have default values
-# with NuExtractParser(Book, model="nuextract-q8") as parser:
-#     book = parser.parse(text)
-#     print(book)
-
-# with OpenAIParser(Book, model="gpt-4o-mini") as parser:
-#     book = parser.parse(text)
-#     print(book)
 ```
 
+#### Usage with open weights models (gguf)
 
-### Perform advanced tasks
+```python
+from llm_core.parsers import OpenWeightsParser
 
-#### Using tools a.k.a. Function calling
+# default model is "mistral-7b-v0.3-q4"
+with OpenWeightsParser(BookCollection) as parser:
+    books_collection = parser.parse(text)
+
+    for book in books_collection.books:
+        print(book)
+```
+
+#### Usage with OpenAI models
+
+```python
+from llm_core.parsers import OpenAIParser
+
+# default model is "gpt-4o-mini"
+with OpenAIParser(BookCollection) as parser:
+    books_collection = parser.parse(text)
+
+    for book in books_collection.books:
+        print(book)
+```
+
+#### Usage with Mistral models
+
+```python
+from llm_core.parsers import MistralAIParser
+
+# default model is "open-mistral-nemo"
+with MistralAIParser(BookCollection) as parser:
+    books_collection = parser.parse(text)
+
+    for book in books_collection.books:
+        print(book)
+```
+
+### Advanced tasks
+
+#### Using tools a.k.a. Function Calling
 
 We can make the LLM use a tool to enrich its context and produce a better answer.
 
@@ -182,7 +224,7 @@ from dataclasses import dataclass
 from llm_core.assistants import OpenAIAssistant
 
 
-HashFunction = Enum("HashFunction", ["sha256", "md5"])
+HashFunction = Enum("HashFunction", ["sha512", "sha256", "md5"])
 
 
 @dataclass
@@ -206,149 +248,19 @@ class Hash:
 
     @classmethod
     def ask(cls, prompt):
-        with OpenAIAssistant(cls, model="gpt-3.5-turbo") as assistant:
+        with OpenAIAssistant(cls, model="gpt-4o-mini") as assistant:
             assistant.tools = [HashProvider]
             response = assistant.process(prompt=prompt)
             return response
 
-Hash.ask('Compute the sha for `py-llm-core`')
-
-Hash(
-    hashed_content='py-llm-core',
-    hash_algorithm=<HashFunction.sha256: 1>,
-    hash_value='38ec92d973268cb671e9cd98a2f5a7b8c4d451d87b61670c1fe236fd7777f708'
-)
-```
-
-#### Assistants module overview
-
-The `assistants` module provides a concise syntax to create features using both
-large language models capabilities and structured outputs.
-
-You can see examples in the source code:
-
-- `assistants.analysts.Analyst`
-- `assistants.verifiers.Doubter`
-- `assistants.verifiers.ConsistencyVerifier`
-- `assistants.summarizers.Summarizer`
-
-
-#### Create your assistant class
-
-In this example, we create an assistant that takes a dish as an input and
-generate recipes in a structured manner.
-
-```python
-from dataclasses import dataclass
-from llm_core.assistants import LLaMACPPAssistant
-
-
-@dataclass
-class RecipeStep:
-    step_title: str
-    step_instructions: str
-
-
-@dataclass
-class Recipe:
-    system_prompt = "You are a world-class chef"
-    prompt = "Write a detailed step-by-step recipe to make {dish}"
-
-    title: str
-    steps: list[RecipeStep]
-    ingredients: list[str]
-
-    @classmethod
-    def from_dish(cls, dish):
-        with LLaMACPPAssistant(cls, model="mistral-7b-v0.3-q4") as assistant:
-            recipe = assistant.process(dish=dish)
-            return recipe
-
-
-recipe = Recipe.from_dish("Boeuf bourguignon")
-print(recipe)
-```
-
-#### Summarizing
-
-```python
-import wikipedia
-from llm_core.assistants import Summarizer, LLaMACPPAssistant
-
-
-summarizer = Summarizer(
-    model="mistral-7b-v0.3-q4",
-    assistant_cls=LLaMACPPAssistant
-)
-
-text = wikipedia.page("Foundation from Isaac Asimov").content
-
-# To summarize only with 50% of the model context size
-partial_summary = summarizer.fast_summarize(text)
-
-# Iterative summaries on the whole content
-for summary in summarizer.summarize(text):
-    print(summary)
+Hash.ask('Compute the md5 for the string `py-llm-core`')
 ```
 
 
-#### Reduce hallucinations using the verifiers module
 
-This example implements loosely the Chain of Verification (CoVe).
+## Context window management
 
-To reduce hallucinations in the LLM completions, you can use the following example
-as a starting point:
-
-```python
-import requests
-from llm_core.splitters import TokenSplitter
-from llm_core.assistants import (
-    Analyst,
-    Doubter,
-    ConsistencyVerifier,
-    LLaMACPPAssistant,
-)
-
-pizza_dough_recipe_url = (
-    "https://raw.githubusercontent.com/hendricius/pizza-dough/main/README.md"
-)
-
-model = "mistral-7b-v0.3-q4"
-assistant_cls = LLaMACPPAssistant
-
-# Utilities
-analyst = Analyst(model, assistant_cls)
-doubter = Doubter(model, assistant_cls)
-verifier = ConsistencyVerifier(model, assistant_cls)
-
-# Fetch some content 
-splitter = TokenSplitter(model=model, chunk_size=4_000)
-pizza_dough_recipe = requests.get(pizza_dough_recipe_url).text
-context = splitter.first_extract(pizza_dough_recipe)
-
-
-query = "Write 3 recommendations on how to make the best pizza dough."
-
-analyst_response = analyst.ask(query, context)
-question_collection = doubter.verify(query, analyst_response.content)
-questions = question_collection.questions
-
-answers = []
-
-for question in questions:
-    response = analyst.ask(question, context=context)
-    answers.append(response.content)
-
-for question, answer in zip(questions, answers):
-    verifications = verifier.verify(
-        question=question, context=context, answer=response.content
-    )
-```
-
-
-## Tokenizer
-
-Tokenizers are registered as a codecs within the Python codecs registry :
+`py-llm-core` uses Tiktoken to estimate the length of strings in tokens. It is registered as a codec within the Python codecs registry :
 
 ```python
 from llm_core.splitters import TokenSplitter
@@ -364,17 +276,11 @@ of galactic civilization after the collapse of the Galactic Empire.
 """
 
 # You can encode the text into tokens like that:
-# tokens = codecs.encode(text, 'gpt-3.5-turbo')
-tokens = codecs.encode(text, 'mistral-7b-v0.3-q4')
-
+tokens = codecs.encode(text, 'tiktoken')
 token_length = len(tokens)
-print(token_length)
 
 # Chunking and splitting
-
-
 splitter = TokenSplitter(
-    model="mistral-7b-v0.3-q4",
     chunk_size=50,
     chunk_overlap=0
 )
@@ -391,9 +297,9 @@ what a user wants to achieve using natural language.
 Here's a simplified example :
 
 ```python
-from dataclasses import dataclass
-from llm_core.assistants import LLaMACPPAssistant
 from enum import Enum
+from dataclasses import dataclass
+from llm_core.assistants import OpenWeightsAssistant
 
 class TargetItem(Enum):
     PROJECT = 1
@@ -424,7 +330,7 @@ class UserQuery:
 
 
 def ask(prompt):
-    with LLaMACPPAssistant(UserQuery, model="mistral") as assistant:
+    with OpenWeightsAssistant(UserQuery, model="mistral-7b-v0.3-q4") as assistant:
         user_query = assistant.process(prompt=prompt)
         return user_query
 
@@ -432,168 +338,18 @@ ask('Cancel all my meetings for the week')
 ```
 
 
-## Synthetic dataset generation example
-
-```python
-from typing import list
-from enum import Enum
-from dataclasses import dataclass
-from llm_core.assistants import LLaMACPPAssistant
-
-
-class Item(Enum):
-    CALENDAR = 1
-    EVENT = 2
-    TASK = 3
-    REMINDER = 4
-    INVITEE = 5
-
-
-class CRUDOperation(Enum):
-    CREATE = 1
-    READ = 2
-    UPDATE = 3
-    DELETE = 4
-
-
-@dataclass
-class UserQueryGenerator:
-    system_prompt = "You are a helpful assistant."
-    prompt = """
-    # Goals
-
-    We are developing a new business calendar software that is able to understand plain english.
-    
-    # Examples
-    
-    Cancel all my meetings of the week
-    What is my next meeting ?
-    What is on the agenda for the meeting at 1 pm ?
-    {queries}
-    
-    # Todo
-
-    Write {queries_count} new examples of what a user could have asked.
-    
-    """
-    user_queries: list[str]
-
-    @classmethod
-    def generate(cls, queries_count=10, existing_queries=()):
-        with LLaMACPPAssistant(cls, model="mistral") as assistant:
-            existing_queries_str = '\n'.join(existing_queries)
-            batch = assistant.process(queries_count=queries_count, queries=existing_queries_str)
-            return batch.user_queries
-
-
-@dataclass
-class UserQueryClassification:
-    system_prompt = "You are a helpful assistant."
-    prompt = """
-    Analyze the user's query and convert his intent to:
-    - an operation (among CRUD)
-    - a target item
-
-    Query: {prompt}
-    """
-    operation: CRUDOperation
-    item: Item
-
-    @classmethod
-    def ask(cls, prompt):
-        with LLaMACPPAssistant(cls, model="mistral") as assistant:
-            user_query = assistant.process(prompt=prompt)
-            return user_query
-```
-
-
-## Argument analysis using Toulmin's method
-
-See the code in `examples/toulmin-model-argument-analysis.py`
-
-```shell
-python3 examples/toulmin-model-argument-analysis.py
-```
-
-## LLaVA - Multi modalities - Mistral Vision
-
-SkunkworksAI released the BakLLaVA model, which is a Mistral 7B instruct model augmented with vision capabilities [SkunkworksAI](https://github.com/SkunkworksAI).
-
-Download `BakLLaVA-1-Q4_K_M.gguf` and `BakLLaVA-1-clip-model.gguf` files from https://huggingface.co/advanced-stack/bakllava-mistral-v1-gguf/tree/main
-
-To run inference:
-
-```python
-from llm_core.llm import LLaVACPPModel
-
-model = "BakLLaVA-1-Q4_K_M.gguf"
-
-llm = LLaVACPPModel(
-    name=model,
-    llama_cpp_kwargs={
-        "logits_all": True,
-        "n_ctx": 8000,
-        "verbose": False,
-        "n_gpu_layers": 100, # Set to 0 if you don't have a GPU
-        "n_threads": 1, 
-        "clip_model_path": "BakLLaVA-1-clip-model.gguf"
-    }
-)
-
-llm.load_model()
-
-history = [
-    {
-        'role': 'user',
-        'content': [
-            {'type': 'image_url', 'image_url': 'http://localhost:8000/adv.png'}
-        ]
-    }
-]
-
-llm.ask('Describe the image as accurately as possible', history=history)
-
-```
-
-## Using Azure OpenAI
-
-Using OpenAI Azure services can be enabled by following the steps:
-
-1. Create an Azure account
-2. Enable Azure OpenAI cognitive services
-3. Get the API key and the API endpoint provided
-4. Set the environment variable USE_AZURE_OPENAI to True (`export USE_AZURE_OPENAI=True`)
-5. Set the environment variable AZURE_OPENAI_ENDPOINT (see step 3)
-6. Set the environment variable AZURE_OPENAI_API_KEY (see step 3)
-7. Create a deployment where you use the model name from OpenAI. You'll need to remove dot signs, i.e. for the model `gpt-3.5-turbo-0613` create a deployment named `gpt-35-turbo-0613`.
-8. PyLLMCore will take care of removing the dot sign for you so you can use the same code base for both OpenAI and Azure.
-9. When calling Parser or Assistant classes, specify the model
-
-The following example uses Azure OpenAI:
-
-```shell
-export USE_AZURE_OPENAI=True
-export AZURE_OPENAI_API_KEY=< your api key >
-export AZURE_OPENAI_ENDPOINT=https://< your endpoint >.openai.azure.com/
-```
-
-## Troubleshooting
-
-### llama-cpp-installation failure (legacy)
-
-The following workaround should no longer be necessary:
-
-The `llama-cpp-python` dependency may improperly detects the architecture and raise an error `an incompatible architecture (have 'x86_64', need 'arm64'))`.
-
-If that's the case, run the following in your virtual env:
-
-```shell
-CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64" pip3 install --upgrade --verbose --force-reinstall --no-cache-dir llama-cpp-python
-```
-
-
 ## Changelog
 
+- 3.0.0:
+    - Simplified the code and the documentation
+    - Upgraded Mistral AI dependencies (Use `MistralAIModel` class)
+    - Simplified management of tokens
+    - Dropped Azure AI support
+    - Dropped LLaVACPPModel support
+    - Dropped NuExtract support
+    - Moved assistant implementations to a separate package
+    - Refactored API gated model code
+    - Renamed llama_cpp_compatible to open_weights
 - 2.8.15: Fixed a bug when using only one tool
 - 2.8.13: Rewrite of the function calling to add support for tools (OpenAI and LLaMA compatible)
 - 2.8.11: Add support for NuExtract models

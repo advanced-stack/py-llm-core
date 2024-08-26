@@ -314,3 +314,14 @@ def make_selection_tool(providers):
     SelectionTool.helpers = make_tool_helper(providers)
 
     return SelectionTool
+
+
+def as_tool(json_schema):
+    return {
+        "type": "function",
+        "function": {
+            "name": json_schema["title"],
+            "description": json_schema["description"],
+            "parameters": json_schema,
+        },
+    }

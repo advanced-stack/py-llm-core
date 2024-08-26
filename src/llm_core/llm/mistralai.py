@@ -1,116 +1,51 @@
 # -*- coding: utf-8 -*-
-from mistralai.client import MistralClient
-from mistralai.models.chat_completion import ChatMessage
-
+from mistralai import Mistral
 from dataclasses import dataclass
+from typing import Callable
 
-from .base import (
-    LLMBase,
-    ChatCompletion,
-)
-
-from ..settings import (
-    MISTRAL_API_KEY,
-    USE_AZURE_AI_MISTRAL_LARGE,
-    AZURE_AI_MISTRAL_LARGE_ENDPOINT,
-    AZURE_AI_MISTRAL_LARGE_KEY,
-)
+from .base import LLMBase
+from ..settings import MISTRAL_API_KEY
 
 
-def create_chat_completion(
-    model, messages, temperature, max_tokens=1000, **kwargs
+def create_completion(
+    llm,
+    model,
+    messages,
+    temperature,
+    tools=None,
+    tool_choice=None,
+    schema=None,
 ):
-    extra_args = {}
-    if USE_AZURE_AI_MISTRAL_LARGE:
-        endpoint = AZURE_AI_MISTRAL_LARGE_ENDPOINT
-        api_key = AZURE_AI_MISTRAL_LARGE_KEY
-        model = "azureai"
-        extra_args["endpoint"] = endpoint
-    else:
-        api_key = MISTRAL_API_KEY
-        model = "mistral-large-latest"
+    api_key = MISTRAL_API_KEY
+    client = Mistral(api_key=api_key)
 
-    client = MistralClient(api_key=api_key, **extra_args)
+    # As per Mistral Documentation to force usage of tool.
+    if tool_choice:
+        tool_choice = "any"
 
-    completion = client.chat(model=model, messages=messages, **kwargs)
-
-    return completion
+    completion = client.chat.complete(
+        model=model, messages=messages, tools=tools, tool_choice=tool_choice
+    )
+    return completion.dict()
 
 
 @dataclass
-class MistralAILarge(LLMBase):
-    name: str = "mistral-large-latest"
-    system_prompt: str = "You are a helpful assistant"
-
-    def __enter__(self):
-        # No special initialization required as we are using API
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # No special cleanup required as we are using API
-        pass
+class MistralAIModel(LLMBase):
+    create_completion: Callable = create_completion
 
     @property
     def ctx_size(self):
-        return 32_000
+        ctx_size_map = {
+            "mistral-large-latest": 128_000,
+            "open-mistral-nemo": 128_000,
+            "codestral-latest": 32_000,
+            "open-mistral-7b": 32_000,
+            "open-mixtral-8x7b": 32_000,
+            "open-mixtral-8x22b": 64_000,
+            "codestral-mamba": 256_000,
+        }
 
-    def ask(
-        self,
-        prompt,
-        history=None,
-        schema=None,
-        temperature=0,
-    ):
-        max_tokens = self.sanitize_prompt(
-            prompt=prompt,
-            history=history,
-            schema=schema,
-        )
-
-        messages = [
-            ChatMessage(
-                **{
-                    "role": "system",
-                    "content": self.system_prompt,
-                }
-            ),
-        ]
-        if history:
-            messages += [ChatMessage(**msg) for msg in history]
-
-        messages.append(
-            ChatMessage(
-                **{
-                    "role": "user",
-                    "content": prompt,
-                }
-            ),
-        )
-
-        kwargs = {}
-        if schema:
-            tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "PublishAnswer",
-                        "description": "Publish the answer",
-                        "parameters": schema,
-                    },
-                }
-            ]
-            tool_choice = "any"
-            kwargs = {
-                "tools": tools,
-                "tool_choice": tool_choice,
-            }
-
-        completion = create_chat_completion(
-            model=self.name,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **kwargs,
-        )
-
-        return ChatCompletion.parse(completion.dict())
+        if self.name in ctx_size_map:
+            return ctx_size_map[self.name]
+        else:
+            raise KeyError("Unsupported model")

@@ -1,16 +1,151 @@
 # -*- coding: utf-8 -*-
-from dataclasses import dataclass, fields
-import codecs
 import json
+import codecs
+import traceback
+import dirtyjson
 
+from typing import Callable
+from dataclasses import dataclass, fields
 
-def remove_unsupported_attributes(data_cls, attributes):
-    field_names = set(field.name for field in fields(data_cls))
-    return {k: v for k, v in attributes.items() if k in field_names}
+from ..schema import (
+    as_tool,
+    from_dict,
+    make_selection_tool,
+)
 
 
 @dataclass
 class LLMBase:
+    name: str = "model-name"
+    system_prompt: str = "You are a helpful assistant"
+    create_completion: Callable = None
+
+    def __post_init__(self):
+        self._ctx_size = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    @property
+    def ctx_size(self):
+        return self._ctx_size
+
+    @ctx_size.setter
+    def ctx_size(self, value):
+        self._ctx_size = value
+
+    def _generate_completion(
+        self,
+        model,
+        messages,
+        temperature,
+        tools=None,
+        tool_choice=None,
+        schema=None,
+    ):
+        completion = self.create_completion(
+            llm=self,
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            tools=tools,
+            tool_choice=tool_choice,
+            schema=schema,
+        )
+        return ChatCompletion.parse(completion)
+
+    def ask(self, prompt, history=(), schema=None, temperature=0, tools=None):
+        self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
+
+        messages = [{"role": "system", "content": self.system_prompt}]
+        if history:
+            messages += history
+
+        messages.append({"role": "user", "content": prompt})
+
+        if tools:
+            tool_selector = make_selection_tool(tools)
+            tools = [as_tool(tool_selector.schema)]
+
+            system_prompt_override = (
+                "Act deterministic and take logical steps."
+                "Use only available tools."
+            )
+            messages = [
+                {"role": "system", "content": system_prompt_override},
+                {"role": "system", "content": system_prompt_override},
+                *history,
+                {"role": "assistant", "content": tool_selector.helpers},
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": tool_selector.prompt},
+            ]
+
+            completion = self._generate_completion(
+                model=self.name,
+                messages=messages,
+                temperature=temperature,
+                tools=tools,
+                tool_choice={
+                    "type": "function",
+                    "function": {"name": tool_selector.__name__},
+                },
+                schema=tool_selector.schema,
+            )
+
+            attributes = dirtyjson.loads(completion.choices[0].message.content)
+            instance = from_dict(tool_selector, attributes)
+
+            try:
+                result = instance.execute()
+            except Exception as e:
+                traceback.print_exc()
+                result = repr(e)
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": instance.detailed_plan.format_results(result),
+                }
+            )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "Answer concisely to the user's query (in the same language)",
+                }
+            )
+
+        if schema:
+            tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "PublishAnswer",
+                        "description": "Publish the answer",
+                        "parameters": schema,
+                    },
+                }
+            ]
+            tool_choice = {
+                "type": "function",
+                "function": {"name": "PublishAnswer"},
+            }
+
+            return self._generate_completion(
+                model=self.name,
+                messages=messages,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+                schema=schema,
+            )
+
+        return self._generate_completion(
+            model=self.name, messages=messages, temperature=temperature
+        )
+
     def sanitize_prompt(
         self,
         prompt,
@@ -31,13 +166,20 @@ class LLMBase:
 
         complete_prompt = "\n".join(complete_prompt)
 
-        required_ctx_size = len(codecs.encode(complete_prompt, self.name))
-        if required_ctx_size > self.ctx_size:
-            raise OverflowError(
-                f"Prompt too large {required_ctx_size} for this model {self.ctx_size}"
-            )
+        prompt_len = len(codecs.encode(complete_prompt, "tiktoken"))
 
-        return self.ctx_size - required_ctx_size
+        if prompt_len > self.ctx_size:
+            err = (
+                f"Prompt too large {prompt_len} for this model {self.ctx_size}"
+            )
+            raise OverflowError(err)
+
+        return self.ctx_size - prompt_len
+
+
+def remove_unsupported_attributes(data_cls, attributes):
+    field_names = set(field.name for field in fields(data_cls))
+    return {k: v for k, v in attributes.items() if k in field_names}
 
 
 @dataclass
@@ -78,7 +220,8 @@ class ChatCompletionChoice:
                     "function"
                 ]["arguments"]
 
-            message = Message(**item["message"])
+            attrs = remove_unsupported_attributes(Message, item["message"])
+            message = Message(**attrs)
             index = item["index"]
             finish_reason = item["finish_reason"]
 

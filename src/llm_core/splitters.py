@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 @dataclass
 class TokenSplitter:
-    model: str = "gpt-3.5-turbo"
+    model: str = "tiktoken"
     chunk_size: int = 300
     chunk_overlap: int = 0
 
