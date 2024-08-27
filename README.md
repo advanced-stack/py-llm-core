@@ -7,6 +7,7 @@ PyLLMCore is a light-weighted interface with Large Language Models.
 It comes with native support:
 - OpenAI
 - MistralAI
+- Anthropic
 - a wide range of open-weights models (GGUF) thanks to `llama-cpp-python` bindings
 
 ## Expected benefits and reasons to use PyLLMCore
@@ -357,7 +358,7 @@ See the following quick start guide.
 
 ## Changelog
 
-- 3.2.0: < Description of changes >
+- 3.2.0: Added support for Anthropic models
 - 3.1.0:
     - Added back support for Azure OpenAI
     - Unified the way to load language models (API or Open Weights)
