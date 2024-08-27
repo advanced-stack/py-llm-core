@@ -6,6 +6,7 @@ import dirtyjson
 
 from typing import Callable
 from dataclasses import dataclass, fields
+from datetime import datetime, timezone
 
 from ..schema import (
     as_tool,
@@ -62,7 +63,15 @@ class LLMBase:
     def ask(self, prompt, history=(), schema=None, temperature=0, tools=None):
         self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
 
-        messages = [{"role": "system", "content": self.system_prompt}]
+        current_datetime = datetime.now(timezone.utc).isoformat()
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {
+                "role": "user",
+                "content": f"The current datetime is: {current_datetime}",
+            },
+        ]
+
         if history:
             messages += history
 
@@ -80,9 +89,9 @@ class LLMBase:
                 {"role": "system", "content": system_prompt_override},
                 {"role": "system", "content": system_prompt_override},
                 *history,
-                {"role": "assistant", "content": tool_selector.helpers},
+                {"role": "user", "content": tool_selector.helpers},
                 {"role": "user", "content": prompt},
-                {"role": "assistant", "content": tool_selector.prompt},
+                {"role": "user", "content": tool_selector.prompt.strip()},
             ]
 
             completion = self._generate_completion(
@@ -114,8 +123,8 @@ class LLMBase:
             )
             messages.append(
                 {
-                    "role": "assistant",
-                    "content": "Answer concisely to the user's query (in the same language)",
+                    "role": "user",
+                    "content": "Answer concisely to the query (in the same language)",
                 }
             )
 
@@ -235,11 +244,11 @@ class ChatCompletionChoice:
 @dataclass
 class ChatCompletion:
     id: str
-    object: str
-    created: int
     model: str
-    choices: list[ChatCompletionChoice]
-    usage: Usage
+    usage: Usage = None
+    object: str = None
+    created: int = None
+    choices: list[ChatCompletionChoice] = None
     system_fingerprint: str = None
     prompt_filter_results: dict = None
 
@@ -247,9 +256,36 @@ class ChatCompletion:
     def parse(cls, attrs):
         attributes = remove_unsupported_attributes(cls, attrs)
 
-        attributes["choices"] = list(
-            ChatCompletionChoice.from_iterable(attributes["choices"])
-        )
+        if "choices" in attributes:
+            attributes["choices"] = list(
+                ChatCompletionChoice.from_iterable(attributes["choices"])
+            )
+        elif "content" in attrs:
+            content = attrs["content"]
+            if isinstance(content, list) and len(content) > 0:
+                message_content = content[0].get("text", "")
+                if content[0].get("type") == "tool_use":
+                    message_content = json.dumps(content[0].get("input", {}))
+                message = Message(
+                    role=attrs.get("role", "assistant"),
+                    content=message_content,
+                )
+                choice = ChatCompletionChoice(
+                    index=0,
+                    message=message,
+                    finish_reason=attrs.get("stop_reason", ""),
+                )
+                attributes["choices"] = [choice]
+                attributes["usage"] = Usage(
+                    prompt_tokens=attributes["usage"]["input_tokens"],
+                    completion_tokens=attributes["usage"]["output_tokens"],
+                    total_tokens=attributes["usage"]["input_tokens"]
+                    + attributes["usage"]["output_tokens"],
+                )
+                return cls(**attributes)
+            else:
+                raise ValueError(f"Unsupported format: {repr(attributes)}")
+
         attributes["usage"] = Usage(**attributes["usage"])
 
         return cls(**attributes)

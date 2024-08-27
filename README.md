@@ -357,6 +357,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.2.0: < Description of changes >
 - 3.1.0:
     - Added back support for Azure OpenAI
     - Unified the way to load language models (API or Open Weights)

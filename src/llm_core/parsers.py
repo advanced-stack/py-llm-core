@@ -11,6 +11,7 @@ from .llm import (
     OpenAIChatModel,
     MistralAIModel,
     OpenWeightsModel,
+    AnthropicModel,
 )
 from .schema import to_json_schema, from_dict
 
@@ -105,3 +106,10 @@ class OpenWeightsParser(BaseParser):
     target_cls: Callable
     model: str = "mistral-7b-v0.3-q4"
     model_cls: Callable = OpenWeightsModel
+
+
+@dataclass
+class AnthropicParser(BaseParser):
+    target_cls: Callable
+    model: str = "claude-3-5-sonnet-20240620"
+    model_cls: Callable = AnthropicModel

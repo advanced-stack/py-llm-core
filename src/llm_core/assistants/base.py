@@ -7,12 +7,14 @@ from ..llm import (
     OpenAIChatModel,
     MistralAIModel,
     OpenWeightsModel,
+    AnthropicModel,
 )
 from ..parsers import (
     BaseParser,
     OpenAIParser,
     OpenWeightsParser,
     MistralAIParser,
+    AnthropicParser,
 )
 
 
@@ -62,3 +64,9 @@ class MistralAIAssistant(BaseAssistant, MistralAIParser):
 class OpenWeightsAssistant(BaseAssistant, OpenWeightsParser):
     model: str = "mistral-7b-v0.3-q4"
     model_cls: Callable = OpenWeightsModel
+
+
+@dataclass
+class AnthropicAssistant(BaseAssistant, AnthropicParser):
+    model: str = "claude-3-5-sonnet-20240620"
+    model_cls: Callable = AnthropicModel

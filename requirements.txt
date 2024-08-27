@@ -4,3 +4,4 @@ dirtyjson
 llama-cpp-python>=0.2.84
 python-decouple
 mistralai
+anthropic
