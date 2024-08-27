@@ -1,16 +1,5 @@
 # PyLLMCore
 
-## Important note
-
-PyLLMCore v3 comes with breaking changes. The goal behind the v3 is to be able to take
-full advantages of LLMs as fast as possible (documentation takes 5 min to read).
-
-For developers using the 2.x versions, you may want to stick to the latest 2.8.15 version. However the 2.x branch won't be maintained (open an issue if you need help migrating your project).
-
-The latest version comes with major simplifications to be even easier to use.
-
-See the following quick start guide.
-
 ## Overview
 
 PyLLMCore is a light-weighted interface with Large Language Models.
@@ -144,6 +133,27 @@ with OpenAIParser(BookCollection) as parser:
         print(book)
 ```
 
+#### Usage with Azure OpenAI deployments
+
+Be sure to add the following environment variables:
+
+- AZURE_OPENAI_API_KEY
+- AZURE_OPENAI_ENDPOINT
+- AZURE_OPENAI_API_VERSION
+
+```python
+# Using Azure
+from llm_core.llm import AzureOpenAIChatModel
+from llm_core.parsers import OpenAIParser
+
+# default model is "gpt-4o-mini"
+with OpenAIParser(BookCollection, model_cls=AzureOpenAIChatModel) as parser:
+    books_collection = parser.parse(text)
+
+    for book in books_collection.books:
+        print(book)
+```
+
 #### Usage with Mistral models
 
 ```python
@@ -191,18 +201,16 @@ class WebSearchProvider:
                 "extra_snippets": True
             }
         )
-
-        # Returns the top 5 results
         return response.json()["web"]["results"][0:5]
 
 
 providers = [WebSearchProvider]
 
-llm = OpenAIChatModel(name="gpt-4o-mini")
-resp = llm.ask(
-    prompt="Who won the 400m men individual medley at the 2024 Olympics?",
-    tools=providers
-)
+with OpenAIChatModel(name="gpt-4o-mini") as llm:
+    resp = llm.ask(
+        prompt="Who won the 400m men individual medley at the 2024 Olympics?",
+        tools=providers
+    )
 
 print(resp.choices[0].message.content)
 ```
@@ -248,14 +256,12 @@ class Hash:
 
     @classmethod
     def ask(cls, prompt):
-        with OpenAIAssistant(cls, model="gpt-4o-mini") as assistant:
-            assistant.tools = [HashProvider]
+        with OpenAIAssistant(cls, tools=[HashProvider]) as assistant:
             response = assistant.process(prompt=prompt)
             return response
 
-Hash.ask('Compute the md5 for the string `py-llm-core`')
+Hash.ask('Compute the sha256 for `py-llm-core`')
 ```
-
 
 
 ## Context window management
@@ -330,16 +336,30 @@ class UserQuery:
 
 
 def ask(prompt):
-    with OpenWeightsAssistant(UserQuery, model="mistral-7b-v0.3-q4") as assistant:
+    with OpenWeightsAssistant(UserQuery, model="llama-8b-3.1-q4", loader_kwargs={"n_ctx": 4_000}) as assistant:
         user_query = assistant.process(prompt=prompt)
         return user_query
 
 ask('Cancel all my meetings for the week')
 ```
 
+## Note
+
+PyLLMCore v3.0.0 comes with breaking changes. The goal behind the v3 is to be able to take
+full advantages of LLMs as fast as possible (documentation takes 5 min to read).
+
+For developers using the 2.x versions, you may want to stick to the latest 2.8.15 version. However the 2.x branch won't be maintained (open an issue if you need help migrating your project).
+
+The latest version comes with major simplifications to be even easier to use.
+
+See the following quick start guide.
+
 
 ## Changelog
 
+- 3.1.0:
+    - Added back support for Azure OpenAI
+    - Unified the way to load language models (API or Open Weights)
 - 3.0.0:
     - Simplified the code and the documentation
     - Upgraded Mistral AI dependencies (Use `MistralAIModel` class)

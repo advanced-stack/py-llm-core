@@ -1,12 +1,32 @@
 # -*- coding: utf-8 -*-
-from openai import OpenAI
+from openai import OpenAI, AzureOpenAI
 from typing import Callable
 from dataclasses import dataclass
 
 from .base import LLMBase
+from ..settings import (
+    AZURE_OPENAI_API_KEY,
+    AZURE_OPENAI_ENDPOINT,
+    AZURE_OPENAI_API_VERSION,
+)
 
 
-def create_completion(
+def load_openai_client(llm, **kwargs):
+    client = OpenAI(**kwargs)
+    return client
+
+
+def load_azure_openai_client(llm, **kwargs):
+    client = AzureOpenAI(
+        api_key=AZURE_OPENAI_API_KEY,
+        api_version=AZURE_OPENAI_API_VERSION,
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,
+        **kwargs,
+    )
+    return client
+
+
+def create_openai_completion(
     llm,
     model,
     messages,
@@ -15,8 +35,7 @@ def create_completion(
     tool_choice=None,
     schema=None,
 ):
-    client = OpenAI()
-    completion = client.chat.completions.create(
+    completion = llm._client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature,
@@ -29,7 +48,23 @@ def create_completion(
 
 @dataclass
 class OpenAIChatModel(LLMBase):
-    create_completion: Callable = create_completion
+    create_completion: Callable = create_openai_completion
+    loader: Callable = load_openai_client
+    loader_kwargs: dict = None
+
+    def __enter__(self):
+        self.load_model()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release_model()
+
+    def load_model(self):
+        kwargs = self.loader_kwargs or {}
+        self._client = self.loader(llm=self, **kwargs)
+
+    def release_model(self):
+        del self._client
 
     @property
     def ctx_size(self):
@@ -38,6 +73,8 @@ class OpenAIChatModel(LLMBase):
             "gpt-3.5-turbo-0613": 4_000,
             "gpt-3.5-turbo-16k": 16_000,
             "gpt-3.5-turbo-16k-0613": 16_000,
+            "gpt-35-turbo": 4_000,
+            "gpt-35-turbo-16k": 16_000,
             "gpt-4": 8_000,
             "gpt-4-0613": 8_000,
             "gpt-4-32k": 32_000,
@@ -52,4 +89,11 @@ class OpenAIChatModel(LLMBase):
         if self.name in ctx_size_map:
             return ctx_size_map[self.name]
         else:
-            raise KeyError("Unsupported model")
+            #: we don't know the model, so we'll default
+            #: to a large context window of 128k tokens
+            return 128_000
+
+
+@dataclass
+class AzureOpenAIChatModel(OpenAIChatModel):
+    loader: Callable = load_azure_openai_client

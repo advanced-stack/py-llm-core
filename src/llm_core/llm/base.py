@@ -19,6 +19,8 @@ class LLMBase:
     name: str = "model-name"
     system_prompt: str = "You are a helpful assistant"
     create_completion: Callable = None
+    loader: Callable = None
+    loader_kwargs: dict = None
 
     def __post_init__(self):
         self._ctx_size = None

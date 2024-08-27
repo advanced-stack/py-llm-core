@@ -7,7 +7,12 @@ from .base import LLMBase
 from ..settings import MISTRAL_API_KEY
 
 
-def create_completion(
+def load_mistralai_client(llm, **kwargs):
+    client = Mistral(api_key=MISTRAL_API_KEY, **kwargs)
+    return client
+
+
+def create_mistralai_completion(
     llm,
     model,
     messages,
@@ -16,14 +21,11 @@ def create_completion(
     tool_choice=None,
     schema=None,
 ):
-    api_key = MISTRAL_API_KEY
-    client = Mistral(api_key=api_key)
-
     # As per Mistral Documentation to force usage of tool.
     if tool_choice:
         tool_choice = "any"
 
-    completion = client.chat.complete(
+    completion = llm._client.chat.complete(
         model=model, messages=messages, tools=tools, tool_choice=tool_choice
     )
     return completion.dict()
@@ -31,7 +33,23 @@ def create_completion(
 
 @dataclass
 class MistralAIModel(LLMBase):
-    create_completion: Callable = create_completion
+    create_completion: Callable = create_mistralai_completion
+    loader: Callable = load_mistralai_client
+    loader_kwargs: dict = None
+
+    def __enter__(self):
+        self.load_model()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release_model()
+
+    def load_model(self):
+        kwargs = self.loader_kwargs or {}
+        self._client = self.loader(llm=self, **kwargs)
+
+    def release_model(self):
+        del self._client
 
     @property
     def ctx_size(self):
@@ -48,4 +66,6 @@ class MistralAIModel(LLMBase):
         if self.name in ctx_size_map:
             return ctx_size_map[self.name]
         else:
-            raise KeyError("Unsupported model")
+            #: we don't know the model, so we'll default
+            #: to a large context window of 128k tokens
+            return 128_000

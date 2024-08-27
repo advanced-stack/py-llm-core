@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 from textwrap import dedent
-from ..llm import load_model
+from dataclasses import dataclass
+from typing import Callable
+
+from ..llm import (
+    OpenAIChatModel,
+    MistralAIModel,
+    OpenWeightsModel,
+)
 from ..parsers import (
     BaseParser,
     OpenAIParser,
@@ -9,9 +16,19 @@ from ..parsers import (
 )
 
 
+@dataclass
 class BaseAssistant(BaseParser):
-    def __init__(self, target_cls, *args, **kwargs):
-        super().__init__(target_cls, *args, **kwargs)
+    target_cls: Callable
+    model: str
+    model_cls: Callable
+    loader: Callable = None
+    loader_kwargs: dict = None
+    system_prompt: str = "You are a helpful assistant"
+    prompt: str = ""
+    tools: list = None
+
+    def __post_init__(self):
+        super().__post_init__()
         self.system_prompt = getattr(self.target_cls, "system_prompt", "")
         self.prompt = getattr(self.target_cls, "prompt", "")
 
@@ -21,39 +38,27 @@ class BaseAssistant(BaseParser):
 
         self.llm.system_prompt = system_prompt
 
-        tools = getattr(self, "tools", None)
         completion = self.llm.ask(
-            prompt, schema=self.target_json_schema, tools=tools
+            prompt, schema=self.target_json_schema, tools=self.tools
         )
         instance = self.deserialize(completion.choices[0].message.content)
+
         return instance
 
 
+@dataclass
 class OpenAIAssistant(BaseAssistant, OpenAIParser):
-    def __init__(self, target_cls, model="gpt-4o-mini", *args, **kwargs):
-        super().__init__(target_cls, model=model, *args, **kwargs)
+    model: str = "gpt-4o-mini"
+    model_cls: Callable = OpenAIChatModel
 
 
+@dataclass
 class MistralAIAssistant(BaseAssistant, MistralAIParser):
-    def __init__(self, target_cls, model="open-mistral-nemo", *args, **kwargs):
-        super().__init__(target_cls, model=model, *args, **kwargs)
+    model: str = "open-mistral-nemo"
+    model_cls: Callable = MistralAIModel
 
 
+@dataclass
 class OpenWeightsAssistant(BaseAssistant, OpenWeightsParser):
-    def __init__(
-        self,
-        target_cls,
-        model="mistral-7b-v0.3-q4",
-        model_loader=load_model,
-        model_loader_kwargs=None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(
-            target_cls,
-            model="mistral-7b-v0.3-q4",
-            model_loader=load_model,
-            model_loader_kwargs=None,
-            *args,
-            **kwargs
-        )
+    model: str = "mistral-7b-v0.3-q4"
+    model_cls: Callable = OpenWeightsModel

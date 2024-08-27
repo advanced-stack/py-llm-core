@@ -4,25 +4,49 @@ import textwrap
 import logging
 import dirtyjson
 
+from dataclasses import dataclass
+from typing import Callable
+
 from .llm import (
     OpenAIChatModel,
     MistralAIModel,
     OpenWeightsModel,
-    load_model,
 )
 from .schema import to_json_schema, from_dict
 
 
+@dataclass
 class BaseParser:
-    def __init__(self, target_cls, *args, **kwargs):
-        self.target_cls = target_cls
+    target_cls: Callable
+    model: str
+    model_cls: Callable
+    loader: Callable = None
+    loader_kwargs: dict = None
+    system_prompt: str = (
+        "Parse and process information from unstructured content."
+    )
+
+    def __post_init__(self):
         self.target_json_schema = to_json_schema(self.target_cls)
 
+        llm_kwargs = {}
+
+        if self.loader:
+            llm_kwargs["loader"] = self.loader
+
+        if self.loader_kwargs:
+            llm_kwargs["loader_kwargs"] = self.loader_kwargs
+
+        self.llm = self.model_cls(
+            name=self.model, system_prompt=self.system_prompt, **llm_kwargs
+        )
+
     def __enter__(self):
+        self.llm.load_model()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        self.llm.release_model()
 
     def deserialize(self, json_str):
         attributes = dirtyjson.loads(json_str)
@@ -36,8 +60,7 @@ class BaseParser:
 
             {formatted_schema}
 
-            When fields are written in plural, be sure to include all instances
-            you found.
+            Write the answer using JSON.
             """.format(
                 formatted_schema=json.dumps(self.target_json_schema, indent=2)
             )
@@ -63,48 +86,22 @@ class BaseParser:
         return instance
 
 
+@dataclass
 class OpenAIParser(BaseParser):
-    def __init__(self, target_cls, model="gpt-4o-mini", *args, **kwargs):
-        super().__init__(target_cls, *args, **kwargs)
-        self.llm = OpenAIChatModel(
-            name=model,
-            system_prompt=(
-                "Parse and process information from unstructured content."
-            ),
-        )
+    target_cls: Callable
+    model: str = "gpt-4o-mini"
+    model_cls: Callable = OpenAIChatModel
 
 
+@dataclass
 class MistralAIParser(BaseParser):
-    def __init__(self, target_cls, model="open-mistral-nemo", *args, **kwargs):
-        super().__init__(target_cls, *args, **kwargs)
-        self.llm = MistralAIModel(
-            name=model,
-            system_prompt=(
-                "Parse and process information from unstructured content."
-            ),
-        )
+    target_cls: Callable
+    model: str = "open-mistral-nemo"
+    model_cls: Callable = MistralAIModel
 
 
+@dataclass
 class OpenWeightsParser(BaseParser):
-    def __init__(
-        self,
-        target_cls,
-        model="mistral-7b-v0.3-q4",
-        model_loader=load_model,
-        model_loader_kwargs=None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(target_cls, *args, **kwargs)
-        self.llm = OpenWeightsModel(
-            name=model,
-            model_loader=model_loader,
-            model_loader_kwargs=model_loader_kwargs,
-        )
-
-    def __enter__(self):
-        self.llm.load_model()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.llm.release_model()
+    target_cls: Callable
+    model: str = "mistral-7b-v0.3-q4"
+    model_cls: Callable = OpenWeightsModel

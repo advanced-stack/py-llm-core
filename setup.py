@@ -12,7 +12,7 @@ requirements = (here / "requirements.txt").read_text().splitlines()
 
 setup(
     name="py-llm-core",
-    version="3.0.0",
+    version="3.1.0",
     license="MIT",
     description="PyLLMCore provides a light-weighted interface with LLMs",
     long_description=long_description,
