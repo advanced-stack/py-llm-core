@@ -117,14 +117,14 @@ class LLMBase:
 
             messages.append(
                 {
-                    "role": "assistant",
+                    "role": "user",
                     "content": instance.detailed_plan.format_results(result),
                 }
             )
             messages.append(
                 {
                     "role": "user",
-                    "content": "Answer concisely to the query (in the same language)",
+                    "content": "Based on the results, provide a concise answer.",
                 }
             )
 

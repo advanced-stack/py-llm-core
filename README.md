@@ -360,6 +360,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.0: Fixed prompt when using tools
 - 3.3.0: Added support for Python 3.8
 - 3.2.0: Added support for Anthropic models
 - 3.1.0:
