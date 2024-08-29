@@ -2,12 +2,12 @@
 
 
 venv:
-	@python3 -m venv venv
+	@python3.8 -m venv venv
 	-ln -s venv/bin .
 	-ln -s venv/bin/activate .
 
-test-setup: venv
-	@bin/pip3 install wikipedia
+dev: venv
+	@bin/pip3 install wikipedia jupyter docker
 
 test:
 	@bin/pytest
@@ -19,7 +19,7 @@ setup: venv
 # Define the package name and version
 PKG_NAME := py-llm-core
 MOD_NAME := py_llm_core
-PKG_VERSION := 3.2.0
+PKG_VERSION := 3.3.0
 
 # Define the directory where the package source code is located
 PKG_DIR := $(shell pwd)

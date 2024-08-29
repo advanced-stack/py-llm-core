@@ -10,6 +10,8 @@ It comes with native support:
 - Anthropic
 - a wide range of open-weights models (GGUF) thanks to `llama-cpp-python` bindings
 
+It requires Python 3.8.
+
 ## Expected benefits and reasons to use PyLLMCore
 
 - Simple to use and to understand
@@ -24,7 +26,6 @@ It comes with native support:
 - You need a whole framework: Take a look at [langchain](https://github.com/langchain-ai/langchain)
 - You need tremendous performance: Take a look at [vllm](https://github.com/vllm-project/vllm)
 - You want/need to use Pydantic and don't use the `dataclasses` module
-- You need Python 3.8 or older (PyLLMCore requires at least 3.9)
 
 ## Use cases
 
@@ -68,6 +69,7 @@ You can use these following examples to extract information from raw text.
 
 ```python
 from dataclasses import dataclass
+from typing import List
 
 @dataclass
 class Book:
@@ -78,7 +80,7 @@ class Book:
 
 @dataclass
 class BookCollection:
-    books: list[Book]
+    books: List[Book]
 
 
 text = """The Foundation series is a science fiction book series written by
@@ -358,6 +360,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.3.0: Added support for Python 3.8
 - 3.2.0: Added support for Anthropic models
 - 3.1.0:
     - Added back support for Azure OpenAI

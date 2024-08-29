@@ -4,7 +4,7 @@ import codecs
 import traceback
 import dirtyjson
 
-from typing import Callable
+from typing import Callable, List
 from dataclasses import dataclass, fields
 from datetime import datetime, timezone
 
@@ -248,7 +248,7 @@ class ChatCompletion:
     usage: Usage = None
     object: str = None
     created: int = None
-    choices: list[ChatCompletionChoice] = None
+    choices: List[ChatCompletionChoice] = None
     system_fingerprint: str = None
     prompt_filter_results: dict = None
 

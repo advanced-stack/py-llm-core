@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
+from typing import Union, List, Dict, Set, Tuple, FrozenSet
+from typing import _GenericAlias as GenericAlias
 
 from enum import Enum
 from functools import reduce
-from types import GenericAlias, UnionType
 from dataclasses import (
     dataclass,
     fields,
@@ -19,6 +20,11 @@ def convert_native_container_type(container_type, items_type):
     items = convert_field_type(items_type)
 
     mapping = {
+        List: {"type": "array", "items": items},
+        Tuple: {"type": "array", "items": items},
+        Dict: {"type": "object", "additionalProperties": items},
+        Set: {"type": "array", "uniqueItems": True, "items": items},
+        FrozenSet: {"type": "array", "uniqueItems": True, "items": items},
         list: {"type": "array", "items": items},
         tuple: {"type": "array", "items": items},
         dict: {"type": "object", "additionalProperties": items},
@@ -46,25 +52,32 @@ def convert_union(field_type):
 
 
 def convert_complex_field_type(field_type):
-    if is_dataclass(field_type):
-        return to_json_schema(field_type)
+    try:
+        if is_dataclass(field_type):
+            return to_json_schema(field_type)
 
-    elif type(field_type) is GenericAlias:
-        return convert_generic_alias(field_type)
+        elif isinstance(field_type, GenericAlias):
+            return convert_generic_alias(field_type)
 
-    elif type(field_type) is UnionType:
-        return convert_union(field_type)
+        elif (
+            hasattr(field_type, "__origin__")
+            and field_type.__origin__ is Union
+        ):
+            return convert_union(field_type)
 
-    elif issubclass(field_type, Enum):
-        return {
-            "type": "string",
-            "enum": list(field_type.__members__.keys()),
-        }
+        elif issubclass(field_type, Enum):
+            return {
+                "type": "string",
+                "enum": list(field_type.__members__.keys()),
+            }
 
-    else:  #: Let the possibility of having a non specified object
-        return {
-            "type": "object",
-        }
+        else:  #: Let the possibility of having a non specified object
+            return {
+                "type": "object",
+            }
+    except Exception as e:
+        print("Error", field_type, is_dataclass(field_type), type(field_type))
+        raise e
 
 
 def convert_field_type(field_type):
@@ -109,26 +122,41 @@ def to_json_schema(datacls):
 
 
 def from_dict(cls, attrs):
-    if is_dataclass(cls):
-        field_types = {f.name: f.type for f in fields(cls)}
-        return cls(
-            **{k: from_dict(field_types[k], v) for k, v in attrs.items()}
-        )
+    sequences = (
+        list,
+        tuple,
+        set,
+        frozenset,
+    )
+    try:
+        if is_dataclass(cls):
+            field_types = {f.name: f.type for f in fields(cls)}
+            return cls(
+                **{k: from_dict(field_types[k], v) for k, v in attrs.items()}
+            )
 
-    elif type(cls) is UnionType:
-        return attrs
+        elif hasattr(cls, "__origin__") and cls.__origin__ is Union:
+            return attrs
 
-    elif cls.__name__ == "list":
-        return [from_dict(cls.__args__[0], v) for v in attrs]
+        elif hasattr(cls, "__origin__") and cls.__origin__ in sequences:
+            return cls.__origin__(
+                [from_dict(cls.__args__[0], v) for v in attrs]
+            )
 
-    elif cls.__name__ == "set":
-        return set([from_dict(cls.__args__[0], v) for v in attrs])
+        elif hasattr(cls, "__name__") and cls.__name__ == "list":
+            return [from_dict(cls.__args__[0], v) for v in attrs]
 
-    elif issubclass(cls, Enum):
-        return getattr(cls, attrs)
+        elif hasattr(cls, "__name__") and cls.__name__ == "set":
+            return set([from_dict(cls.__args__[0], v) for v in attrs])
 
-    else:
-        return attrs
+        elif issubclass(cls, Enum):
+            return getattr(cls, attrs)
+
+        else:
+            return attrs
+    except AttributeError as e:
+        print(f"Error on {cls}")
+        raise e
 
 
 def to_grammar(schema):
@@ -190,17 +218,17 @@ def make_selection_tool(providers):
     class DetailedPlan:
         step_1_query_analysis: str
         step_1_function_name: ProviderName
-        step_1_function_arguments: reduce(lambda a, b: a | b, providers)
+        step_1_function_arguments: reduce(lambda a, b: {**a, **b}, providers)
 
-        identified_entities: list[str]
-        missing_entities: list[str]
-        identified_implications: list[str]
-        identified_hypothesis: list[str]
+        identified_entities: List[str]
+        missing_entities: List[str]
+        identified_implications: List[str]
+        identified_hypothesis: List[str]
 
         step_2_analysis_evaluation: str
         step_2_revised_plan: str
         step_2_function_name: ProviderName
-        step_2_function_arguments: reduce(lambda a, b: a | b, providers)
+        step_2_function_arguments: reduce(lambda a, b: {**a, **b}, providers)
 
         def format_results(self, results):
             return dedent(
