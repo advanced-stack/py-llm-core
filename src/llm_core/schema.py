@@ -187,7 +187,7 @@ def make_helper(provider):
         "\n".join(
             [
                 (
-                    f"{f.name} ({f.type.__name__}) "
+                    f"{f.name} ({getattr(f.type, '__name__', getattr(f.type, '_name', ''))}) "
                     f"{'(required)' if f.default == MISSING and f.default_factory == MISSING else ''}"
                 )
                 for f in fields(provider)
