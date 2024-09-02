@@ -39,6 +39,8 @@ def convert_generic_alias(field_type):
     items_type = field_type.__args__
 
     if len(items_type) != 1:
+        print(field_type)
+        print(items_type)
         raise NotImplementedError("Complex annotations are not supported")
 
     items_type = items_type[0]
@@ -56,14 +58,14 @@ def convert_complex_field_type(field_type):
         if is_dataclass(field_type):
             return to_json_schema(field_type)
 
-        elif isinstance(field_type, GenericAlias):
-            return convert_generic_alias(field_type)
-
         elif (
             hasattr(field_type, "__origin__")
             and field_type.__origin__ is Union
         ):
             return convert_union(field_type)
+
+        elif isinstance(field_type, GenericAlias):
+            return convert_generic_alias(field_type)
 
         elif issubclass(field_type, Enum):
             return {
@@ -218,7 +220,7 @@ def make_selection_tool(providers):
     class DetailedPlan:
         step_1_query_analysis: str
         step_1_function_name: ProviderName
-        step_1_function_arguments: reduce(lambda a, b: {**a, **b}, providers)
+        step_1_function_arguments: reduce(lambda a, b: Union[a, b], providers)
 
         identified_entities: List[str]
         missing_entities: List[str]
@@ -228,7 +230,7 @@ def make_selection_tool(providers):
         step_2_analysis_evaluation: str
         step_2_revised_plan: str
         step_2_function_name: ProviderName
-        step_2_function_arguments: reduce(lambda a, b: {**a, **b}, providers)
+        step_2_function_arguments: reduce(lambda a, b: Union[a, b], providers)
 
         def format_results(self, results):
             return dedent(

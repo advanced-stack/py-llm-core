@@ -360,6 +360,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.2: Fixed bug when using more than one tool
 - 3.4.1: Fixed bug when building field type name
 - 3.4.0: Fixed prompt when using tools
 - 3.3.0: Added support for Python 3.8
