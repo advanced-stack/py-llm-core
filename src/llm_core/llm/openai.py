@@ -41,6 +41,7 @@ def create_openai_completion(
         temperature=temperature,
         tools=tools,
         tool_choice=tool_choice,
+        parallel_tool_calls=False,
     )
 
     return completion.dict()

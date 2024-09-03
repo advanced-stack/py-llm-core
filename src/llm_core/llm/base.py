@@ -115,10 +115,12 @@ class LLMBase:
                 traceback.print_exc()
                 result = repr(e)
 
+            formatted_results = instance.detailed_plan.format_results(result)
+
             messages.append(
                 {
                     "role": "user",
-                    "content": instance.detailed_plan.format_results(result),
+                    "content": formatted_results,
                 }
             )
             messages.append(

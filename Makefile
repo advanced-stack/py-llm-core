@@ -19,7 +19,7 @@ setup: venv
 # Define the package name and version
 PKG_NAME := py-llm-core
 MOD_NAME := py_llm_core
-PKG_VERSION := 3.4.2
+PKG_VERSION := 3.4.3
 
 # Define the directory where the package source code is located
 PKG_DIR := $(shell pwd)
