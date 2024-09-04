@@ -60,7 +60,15 @@ class LLMBase:
         )
         return ChatCompletion.parse(completion)
 
-    def ask(self, prompt, history=(), schema=None, temperature=0, tools=None):
+    def ask(
+        self,
+        prompt,
+        history=(),
+        schema=None,
+        temperature=0,
+        tools=None,
+        raw_tool_results=False,
+    ):
         self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
 
         current_datetime = datetime.now(timezone.utc).isoformat()
@@ -110,12 +118,15 @@ class LLMBase:
             instance = from_dict(tool_selector, attributes)
 
             try:
-                result = instance.execute()
+                result, trace = instance.execute()
             except Exception as e:
                 traceback.print_exc()
-                result = repr(e)
+                result, trace = None, repr(e)
 
-            formatted_results = instance.detailed_plan.render(result)
+            if raw_tool_results:
+                return result
+
+            formatted_results = instance.detailed_plan.render(trace)
 
             messages.append(
                 {

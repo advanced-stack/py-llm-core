@@ -40,9 +40,20 @@ class BaseAssistant(BaseParser):
 
         self.llm.system_prompt = system_prompt
 
+        if not self.target_json_schema["properties"]:
+            return self.llm.ask(
+                prompt,
+                schema=self.target_json_schema,
+                tools=self.tools,
+                raw_tool_results=True,
+            )
+
         completion = self.llm.ask(
-            prompt, schema=self.target_json_schema, tools=self.tools
+            prompt,
+            schema=self.target_json_schema,
+            tools=self.tools,
         )
+
         instance = self.deserialize(completion.choices[0].message.content)
 
         return instance

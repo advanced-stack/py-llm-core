@@ -40,6 +40,8 @@ PyLLMCore has evolved to covers a wider range of use cases and serves as a build
 
 ### Quick start
 
+You may want to explore the jupyter notebook in the `/notebooks/` directory or the repository as it contains executable examples.
+
 ```shell
 pip install py-llm-core
 
@@ -360,6 +362,10 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.5:
+    - Fixed parallel_tool_calls bug
+    - Added support for `raw_tool_results` argument in `ask` to stop generation
+      and output unprocessed tool results.
 - 3.4.4: Improved the tool use prompting and structure
 - 3.4.3: Disabled parallel_tool_calls
 - 3.4.2: Fixed bug when using more than one tool

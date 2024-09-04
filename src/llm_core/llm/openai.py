@@ -35,13 +35,18 @@ def create_openai_completion(
     tool_choice=None,
     schema=None,
 ):
+    additional_kwargs = {}
+
+    if tools:
+        additional_kwargs.update({"parallel_tool_calls": False})
+
     completion = llm._client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature,
         tools=tools,
         tool_choice=tool_choice,
-        parallel_tool_calls=False,
+        **additional_kwargs,
     )
     return completion.dict()
 

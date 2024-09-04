@@ -323,7 +323,7 @@ def make_selection_tool(providers):
             result = executable_partial()
 
             trace.append(f"gave the result: `{result}`")
-            return " ".join(trace)
+            return result, " ".join(trace)
 
     schema = to_json_schema(SelectionTool)
     grammar = to_grammar(schema)
