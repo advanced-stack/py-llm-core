@@ -43,7 +43,6 @@ def create_openai_completion(
         tool_choice=tool_choice,
         parallel_tool_calls=False,
     )
-
     return completion.dict()
 
 

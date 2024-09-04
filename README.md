@@ -360,6 +360,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.4: Improved the tool use prompting and structure
 - 3.4.3: Disabled parallel_tool_calls
 - 3.4.2: Fixed bug when using more than one tool
 - 3.4.1: Fixed bug when building field type name

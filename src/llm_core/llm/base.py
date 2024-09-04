@@ -115,7 +115,7 @@ class LLMBase:
                 traceback.print_exc()
                 result = repr(e)
 
-            formatted_results = instance.detailed_plan.format_results(result)
+            formatted_results = instance.detailed_plan.render(result)
 
             messages.append(
                 {

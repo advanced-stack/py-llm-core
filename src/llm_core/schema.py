@@ -218,51 +218,52 @@ def make_selection_tool(providers):
 
     @dataclass
     class DetailedPlan:
-        step_1_query_analysis: str
-        step_1_function_name: ProviderName
-        step_1_function_arguments: reduce(lambda a, b: Union[a, b], providers)
-
-        identified_entities: List[str]
+        query_analysis: str
+        entities: List[str]
         missing_entities: List[str]
-        identified_implications: List[str]
-        identified_hypothesis: List[str]
+        relations: List[str]
+        missing_relations: List[str]
+        plan: str
 
-        step_2_analysis_evaluation: str
-        step_2_revised_plan: str
-        step_2_function_name: ProviderName
-        step_2_function_arguments: reduce(lambda a, b: Union[a, b], providers)
+        function_name: ProviderName
+        function_arguments: reduce(lambda a, b: Union[a, b], providers)
 
-        def format_results(self, results):
+        def render(self, results):
             return dedent(
-                f"""# Detailed Plan
+                f"""
+                # Detailed Plan
 
-                ## Step 1: Query Analysis
-                Query Analysis: {self.step_1_query_analysis}
+                1. Analyze user's query
 
-                Function Name: {self.step_1_function_name}
+                {self.query_analysis}
 
-                Function Arguments: {self.step_1_function_arguments}
+                2. Identify entities
 
-                ## Identified Entities
-                {', '.join(self.identified_entities)}
+                {', '.join(self.entities)}
 
-                ## Missing Entities
+                3. Identify missing entities
+
                 {', '.join(self.missing_entities)}
 
-                ## Identified Implications
-                {', '.join(self.identified_implications)}
+                4. Identify relations
 
-                ## Identified Hypothesis
-                {', '.join(self.identified_hypothesis)}
+                {', '.join(self.relations)}
 
-                ## Step 2: Analysis Evaluation
-                Analysis Evaluation: {self.step_2_analysis_evaluation}
+                5. Identify missing relations
 
-                Revised Plan: {self.step_2_revised_plan}
+                {', '.join(self.missing_relations)}
 
-                Function Name: {self.step_2_function_name}
+                6. Write a concise plan
 
-                Function Arguments: {self.step_2_function_arguments}
+                {self.plan}
+
+                7. Write the function name to use
+
+                {self.function_name}
+
+                8. Write the function arguments
+
+                -- hidden for brevity purpose --
 
                 ## Execution trace
 
@@ -270,57 +271,45 @@ def make_selection_tool(providers):
 
                 {results}
                 """
-            )
+            ).strip()
 
     @dataclass
     class SelectionTool:
         prompt = """
-        Design a very detailed plan to fulfill the user's query.
+        Design a plan to fulfill the user's query.
 
-        # Step 1
+        Here's a framework to follow:
 
-        - Analyze user's query and select a function
-        - Write the function arguments
+        1. Analyze user's query
+        2. Identify entities
+        3. Identify missing entities
+        4. Identify relations
+        5. Identify missing relations
+        6. Write a concise plan
+        7. Write the function name to use
+        8. Write the function arguments
 
-        # Step 2
-
-        - Evaluate the analysis of "Step 1"
-        - Write a revised plan with more details
-
-        # Guidelines
-
-        Entities are:
-        - specific
-        - present or missing
-
-        Relations are:
-        - implications
-        - hypothesis
         """
         detailed_plan: DetailedPlan
 
         def execute(self):
             trace = []
 
-            function_name = self.detailed_plan.step_2_function_name.name
+            function_name = self.detailed_plan.function_name.name
 
             trace.append(f"The execution of the function: {function_name}")
 
             #: This first branch is run when only one tool is available
-            #: In that case, step_2_function_arguments contains a populated
+            #: In that case, function_arguments contains a populated
             #: dataclass
-            if is_dataclass(self.detailed_plan.step_2_function_arguments):
-                arguments = asdict(
-                    self.detailed_plan.step_2_function_arguments
-                )
-                executable_partial = (
-                    self.detailed_plan.step_2_function_arguments
-                )
+            if is_dataclass(self.detailed_plan.function_arguments):
+                arguments = asdict(self.detailed_plan.function_arguments)
+                executable_partial = self.detailed_plan.function_arguments
 
             #: This second branch is run when several tools are available
-            #: In that case, step_2_function_arguments contains a mapping
+            #: In that case, function_arguments contains a mapping
             else:
-                arguments = self.detailed_plan.step_2_function_arguments
+                arguments = self.detailed_plan.function_arguments
                 executable_partial = from_dict(
                     providers_registry[function_name], arguments
                 )
