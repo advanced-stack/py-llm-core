@@ -83,3 +83,9 @@ upload:
 
 display-version:
 	echo ${PKG_VERSION}
+
+release:
+	make build
+	make tag
+	make upload
+	git push --follow-tags
