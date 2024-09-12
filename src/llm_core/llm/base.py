@@ -115,31 +115,45 @@ class LLMBase:
             )
 
             attributes = dirtyjson.loads(completion.choices[0].message.content)
-            instance = from_dict(tool_selector, attributes)
-
             try:
-                result, trace = instance.execute()
-            except Exception as e:
-                traceback.print_exc()
-                result, trace = None, repr(e)
+                plan = from_dict(tool_selector, attributes)
+            except KeyError as e:
+                print(f"Error while instantiation: {repr(attributes)}")
+                raise e
 
-            if raw_tool_results:
-                return result
+            if raw_tool_results and not plan.detailed_plan.use_function:
+                return None
 
-            formatted_results = instance.detailed_plan.render(trace)
+            if not plan.detailed_plan.use_function:
+                messages = [
+                    {"role": "system", "content": self.system_prompt},
+                    *history,
+                    {"role": "user", "content": prompt},
+                ]
+            else:
+                try:
+                    result, trace = plan.execute()
+                except Exception as e:
+                    traceback.print_exc()
+                    result, trace = None, repr(e)
 
-            messages.append(
-                {
-                    "role": "user",
-                    "content": formatted_results,
-                }
-            )
-            messages.append(
-                {
-                    "role": "user",
-                    "content": "Based on the results, provide a concise answer.",
-                }
-            )
+                if raw_tool_results:
+                    return result
+
+                formatted_results = plan.detailed_plan.render(trace)
+
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": formatted_results,
+                    }
+                )
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": "Based on the results, provide a concise answer.",
+                    }
+                )
 
         if schema:
             tools = [

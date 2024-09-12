@@ -362,6 +362,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.6: Fixed a bug appearing when the LLM does not want to use any tool
 - 3.4.5:
     - Fixed parallel_tool_calls bug
     - Added support for `raw_tool_results` argument in `ask` to stop generation

@@ -66,7 +66,14 @@ class OpenWeightsModel(LLMBase):
     def load_model(self):
         kwargs = self.loader_kwargs or {}
         self._client = self.loader(llm=self, **kwargs)
-        self.ctx_size = int(self._client.metadata["llama.context_length"])
+
+        context_length_key = next(
+            filter(lambda k: "context_length" in k, self._client.metadata)
+        )
+
+        self.ctx_size = int(
+            self._client.metadata.get(context_length_key, 4_000)
+        )
 
     def release_model(self):
         del self._client

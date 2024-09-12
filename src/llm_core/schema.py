@@ -224,9 +224,9 @@ def make_selection_tool(providers):
         relations: List[str]
         missing_relations: List[str]
         plan: str
-
-        function_name: ProviderName
-        function_arguments: reduce(lambda a, b: Union[a, b], providers)
+        use_function: bool
+        function_name: ProviderName = ""
+        function_arguments: reduce(lambda a, b: Union[a, b], providers) = ""
 
         def render(self, results):
             return dedent(
