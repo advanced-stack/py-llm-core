@@ -225,6 +225,7 @@ class Usage:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
+    completion_tokens_details: dict = None
 
 
 @dataclass
@@ -313,6 +314,7 @@ class ChatCompletion:
             else:
                 raise ValueError(f"Unsupported format: {repr(attributes)}")
 
+        print(attributes["usage"])
         attributes["usage"] = Usage(**attributes["usage"])
 
         return cls(**attributes)
