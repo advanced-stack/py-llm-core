@@ -314,6 +314,7 @@ class ChatCompletion:
             else:
                 raise ValueError(f"Unsupported format: {repr(attributes)}")
 
-        attributes["usage"] = Usage(**attributes["usage"])
+        usage_attrs = remove_unsupported_attributes(Usage, attributes["usage"])
+        attributes["usage"] = Usage(**usage_attrs)
 
         return cls(**attributes)

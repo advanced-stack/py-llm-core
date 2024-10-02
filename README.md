@@ -362,6 +362,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.8: Removed unsupported attributes for Usage
 - 3.4.7: Added support for `completion_tokens_details`
 - 3.4.6: Fixed a bug appearing when the LLM does not want to use any tool
 - 3.4.5:
