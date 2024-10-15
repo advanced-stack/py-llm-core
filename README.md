@@ -8,6 +8,7 @@ It comes with native support:
 - OpenAI
 - MistralAI
 - Anthropic
+- Google AI (Gemini)
 - a wide range of open-weights models (GGUF) thanks to `llama-cpp-python` bindings
 
 It requires Python 3.8.
@@ -362,6 +363,7 @@ See the following quick start guide.
 
 ## Changelog
 
+- 3.4.9: Added suppport for Google AI Gemini
 - 3.4.8: Removed unsupported attributes for Usage
 - 3.4.7: Added support for `completion_tokens_details`
 - 3.4.6: Fixed a bug appearing when the LLM does not want to use any tool
