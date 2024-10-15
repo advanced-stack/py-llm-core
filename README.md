@@ -2,77 +2,149 @@
 
 ## Overview
 
-PyLLMCore is a light-weighted interface with Large Language Models.
+PyLLMCore is a lightweight Python library designed to provide a simple and efficient interface for interacting with Large Language Models (LLMs). It supports a variety of models, including:
 
-It comes with native support:
-- OpenAI
-- MistralAI
-- Anthropic
-- Google AI (Gemini)
-- a wide range of open-weights models (GGUF) thanks to `llama-cpp-python` bindings
+- **OpenAI**: Access state-of-the-art models like GPT-4o.
+- **MistralAI**: Use models optimized for specific tasks.
+- **Anthropic**: Engage with Claude.
+- **Google AI (Gemini)**: Leverage the largest context window of Google's Gemini serie.
+- **Open-Weights Models (GGUF)**: Use a wide range of open-source models via `llama-cpp-python` bindings.
 
-It requires Python 3.8.
 
-## Expected benefits and reasons to use PyLLMCore
+### Key Features
 
-- Simple to use and to understand
-- Pythonic API
-- Easy hacking
-- As little dependencies as possible
-- Structures are *everywhere* provided by the standard library `dataclasses` module
-- Easy swapping between models
+- **Pythonic API**: Designed to be intuitive and easy to use for Python developers.
+- **Minimal dependencies**: Built with as few dependencies as possible to ensure ease of installation and integration.
+- **Flexible model switching**: Easily swap between different models to suit your needs.
+- **Standard library integration**: Uses Python's `dataclasses` for structured data handling.
 
-## Why you shouldn't use PyLLMCore
+### System Requirements
 
-- You need a whole framework: Take a look at [langchain](https://github.com/langchain-ai/langchain)
-- You need tremendous performance: Take a look at [vllm](https://github.com/vllm-project/vllm)
-- You want/need to use Pydantic and don't use the `dataclasses` module
+- **Python 3.8** or higher is required to use PyLLMCore.
 
-## Use cases
 
-PyLLMCore has evolved to covers a wider range of use cases and serves as a building brick:
+### Why Choose PyLLMCore?
 
-- Parsing raw content: see the `parsers` module
-- Tool and function calling: see the `assistants` module
-- Context window size management: see the `splitters` module
+- **Ease of use**: Simple setup and usage make it accessible for developers of all levels.
+- **Versatility**: Supports a wide range of models and use cases, from parsing text to function calling.
+- **Customization**: Offers the ability to extend and customize functionality with minimal effort.
+
+### When to consider alternatives
+
+- If you need a comprehensive framework, consider [LangChain](https://github.com/langchain-ai/langchain).
+- For high-performance requirements, explore [vllm](https://github.com/vllm-project/vllm).
+- If you prefer using Pydantic over `dataclasses`, PyLLMCore might not be the best fit.
+
+
+## Use Cases
+
+PyLLMCore is versatile and can be used in various scenarios involving Large Language Models (LLMs). Here are some common use cases:
+
+1. **Parsing raw content:**
+   - Use the `parsers` module to extract structured information from unstructured text. This is useful for applications like data extraction, content analysis, and information retrieval.
+
+2. **Tool and function calling:**
+   - Leverage the `assistants` module to enable LLMs to interact with external tools and functions. This can enhance the model's capabilities by integrating with APIs or performing specific tasks.
+
+3. **Context window size management:**
+   - Utilize the `splitters` module to manage large text inputs by splitting them into manageable chunks. This is particularly useful when dealing with small models that have context window limitations.
+
+4. **Custom model integration:**
+   - Easily switch between different LLMs, including OpenAI, MistralAI, Anthropic, Google AI, and open-weights models, to suit specific requirements or preferences.
+
+5. **Advanced tasks:**
+   - Implement advanced functionalities such as structured output generation, classification tasks, and more by customizing the library's features.
 
 
 ## Install
 
-### Quick start
+### Prerequisites
 
-You may want to explore the jupyter notebook in the `/notebooks/` directory or the repository as it contains executable examples.
+- Ensure you have **Python 3.8** or higher installed on your system.
+- It's recommended to use a virtual environment to manage dependencies.
 
-```shell
-pip install py-llm-core
+### Installation steps
 
-#: To use OpenAI models, set your API key
-export OPENAI_API_KEY=sk-<replace with your actual api key>
+1. **Set up a virtual environment (optional but recommended):**
 
-#: To use local models (i.e. completely offline),
-#: download and store your models in ~/.cache/py-llm-core/models/
+   ```shell
+   python -m venv venv
+   source venv/bin/activate
+   ```
 
-#: The following commands download the best models (you can use any GGUF models)
-#: LLaMA-3.1-8B (Quantized version Q4_K_M)
-#: Mistral 7B v0.3 (Quantized version Q4_K_M)
+2. **Install PyLLMCore:**
 
-mkdir -p ~/.cache/py-llm-core/models
-wget -O ~/.cache/py-llm-core/models/llama-8b-3.1-q4 \
-    https://huggingface.co/lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf?download=true
+   Use `pip` to install the library:
 
-wget -O ~/.cache/py-llm-core/models/mistral-7b-v0.3-q4 \
-    https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf?download=true
-```
+   ```shell
+   pip install py-llm-core
+   ```
+
+3. **Configure API keys:**
+
+   If you plan to use OpenAI models, set your API key as an environment variable:
+
+   ```shell
+   export OPENAI_API_KEY=sk-<replace with your actual api key>
+   ```
+
+   For Azure OpenAI, set the following environment variables:
+
+   ```shell
+   export AZURE_OPENAI_API_KEY=<your-azure-api-key>
+   export AZURE_OPENAI_ENDPOINT=<your-azure-endpoint>
+   export AZURE_OPENAI_API_VERSION=<api-version>
+   ```
+
+   For MistralAI set the respective API keys:
+
+   ```shell
+   export MISTRAL_API_KEY=<your-mistral-api-key>
+   ```
+
+   For Anthropic set the respective API keys:
+
+   ```shell
+   export ANTHROPIC_API_KEY=<your-anthropic-api-key>
+   ```
+
+   For Google AI set the respective API keys:
+
+   ```shell
+   export GOOGLE_API_KEY=<your-google-api-key>
+   ```
+
+4. **Download local models (Optional):**
+
+   If you want to use local open-weights models offline, download and store them in the specified directory:
+
+   ```shell
+   mkdir -p ~/.cache/py-llm-core/models
+   wget -O ~/.cache/py-llm-core/models/llama-8b-3.1-q4 \
+       https://huggingface.co/lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf?download=true
+
+   wget -O ~/.cache/py-llm-core/models/mistral-7b-v0.3-q4 \
+       https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf?download=true
+   ```
+
+### Quick Start
+
+Explore the Jupyter notebook in the `/notebooks/` directory for executable examples to get started quickly.
 
 ## Documentation
 
-### Parsing
+### Parsing with PyLLMCore
 
-You can use these following examples to extract information from raw text.
+The `py-llm-core` library provides a straightforward way to parse and extract structured information from unstructured text using various Large Language Models (LLMs). Below are examples of how to use the `OpenAIParser` and how to switch between different parsers.
+
+#### Basic Example with OpenAIParser
+
+To parse text using OpenAI models, you can use the `OpenAIParser`. Here's a simple example:
 
 ```python
 from dataclasses import dataclass
 from typing import List
+from llm_core.parsers import OpenAIParser
 
 @dataclass
 class Book:
@@ -85,53 +157,13 @@ class Book:
 class BookCollection:
     books: List[Book]
 
-
 text = """The Foundation series is a science fiction book series written by
 American author Isaac Asimov. First published as a series of short
 stories and novellas in 1942–50, and subsequently in three books in
 1951–53, for nearly thirty years the series was widely known as The
 Foundation Trilogy: Foundation (1951), Foundation and Empire (1952),
-and Second Foundation (1953). It won the one-time Hugo Award for "Best
-All-Time Series" in 1966. Asimov later added new volumes, with two
-sequels, Foundation's Edge (1982) and Foundation and Earth (1986), and
-two prequels, Prelude to Foundation (1988) and Forward the Foundation
-(1993).
+and Second Foundation (1953)."""
 
-The premise of the stories is that in the waning days of a future
-Galactic Empire, the mathematician Hari Seldon devises the theory of
-psychohistory, a new and effective mathematics of sociology. Using
-statistical laws of mass action, it can predict the future of large
-populations. Seldon foresees the imminent fall of the Empire, which
-encompasses the entire Milky Way, and a dark age lasting 30,000 years
-before a second empire arises. Although the momentum of the Empire's
-fall is too great to stop, Seldon devises a plan by which "the
-onrushing mass of events must be deflected just a little" to
-eventually limit this interregnum to just one thousand years. The
-books describe some of the dramatic events of those years as they are
-shaped by the underlying political and social mechanics of Seldon's
-Plan.
-"""
-```
-
-#### Usage with open weights models (gguf)
-
-```python
-from llm_core.parsers import OpenWeightsParser
-
-# default model is "mistral-7b-v0.3-q4"
-with OpenWeightsParser(BookCollection) as parser:
-    books_collection = parser.parse(text)
-
-    for book in books_collection.books:
-        print(book)
-```
-
-#### Usage with OpenAI models
-
-```python
-from llm_core.parsers import OpenAIParser
-
-# default model is "gpt-4o-mini"
 with OpenAIParser(BookCollection) as parser:
     books_collection = parser.parse(text)
 
@@ -139,58 +171,139 @@ with OpenAIParser(BookCollection) as parser:
         print(book)
 ```
 
-#### Usage with Azure OpenAI deployments
+#### Advanced Example with OpenAIParser
 
-Be sure to add the following environment variables:
-
-- AZURE_OPENAI_API_KEY
-- AZURE_OPENAI_ENDPOINT
-- AZURE_OPENAI_API_VERSION
+For more complex parsing tasks, you can define a more detailed schema:
 
 ```python
-# Using Azure
-from llm_core.llm import AzureOpenAIChatModel
+from dataclasses import dataclass
+from typing import List, Dict
 from llm_core.parsers import OpenAIParser
 
-# default model is "gpt-4o-mini"
-with OpenAIParser(BookCollection, model_cls=AzureOpenAIChatModel) as parser:
+@dataclass
+class Book:
+    title: str
+    summary: str
+    author: str
+    published_year: int
+    awards: List[str]
+    genres: List[str]
+
+@dataclass
+class BookCollection:
+    books: List[Book]
+
+text = """The Foundation series by Isaac Asimov includes several award-winning books
+such as Foundation (1951), which won the Hugo Award. The series spans genres like
+science fiction and speculative fiction."""
+
+with OpenAIParser(BookCollection) as parser:
     books_collection = parser.parse(text)
 
     for book in books_collection.books:
         print(book)
 ```
 
-#### Usage with Mistral models
+#### Switching Parsers
+
+You can easily switch between different parsers to use models from other providers:
+
+- **MistralAIParser**: For MistralAI models.
+  ```python
+  from llm_core.parsers import MistralAIParser
+  with MistralAIParser(BookCollection) as parser:
+      books_collection = parser.parse(text)
+  ```
+
+- **OpenWeightsParser**: For open-weights models.
+  ```python
+  from llm_core.parsers import OpenWeightsParser
+  with OpenWeightsParser(BookCollection) as parser:
+      books_collection = parser.parse(text)
+  ```
+
+- **AnthropicParser**: For Anthropic models.
+  ```python
+  from llm_core.parsers import AnthropicParser
+  with AnthropicParser(BookCollection) as parser:
+      books_collection = parser.parse(text)
+  ```
+
+- **GoogleAIParser**: For Google AI models.
+  ```python
+  from llm_core.parsers import GoogleAIParser
+  with GoogleAIParser(BookCollection) as parser:
+      books_collection = parser.parse(text)
+  ```
+
+### Working with Open Weights Models
+
+PyLLMCore allows you to work with open weights models, providing flexibility to use models offline. To use these models, follow these steps:
+
+1. **Model Location**: By default, models are stored in the `~/.cache/py-llm-core/models` directory. You can change this location by setting the `MODELS_CACHE_DIR` environment variable.
+
+2. **Model Selection**: To select an open weights model, specify the model name when initializing the `OpenWeightsModel` class. Ensure the model file is present in the specified directory. For example:
 
 ```python
-from llm_core.parsers import MistralAIParser
+from llm_core.llm import OpenWeightsModel
 
-# default model is "open-mistral-nemo"
-with MistralAIParser(BookCollection) as parser:
-    books_collection = parser.parse(text)
-
-    for book in books_collection.books:
-        print(book)
+model_name = "llama-8b-3.1-q4"  # Replace with your model's name
+with OpenWeightsModel(name=model_name) as model:
+   # Use the model for your tasks
+   pass
 ```
 
-### Advanced tasks
+Ensure that the model file, such as `llama-8b-3.1-q4`, is downloaded and stored in the `MODELS_CACHE_DIR`.
 
-#### Using tools a.k.a. Function Calling
+3. **Downloading Models**: You can download models from sources like Hugging Face. Use the following command to download a model:
 
-We can make the LLM use a tool to enrich its context and produce a better answer.
+```shell
+   wget -O ~/.cache/py-llm-core/models/llama-8b-3.1-q4 \
+       https://huggingface.co/lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf?download=true
+```
 
-To use tools, the only thing you need to define is a dataclass and the `__call__`
-method and implement the required logic.
 
-Here's an example on how to add web search capabilities using [Brave Search API](https://brave.com/search/api/)
+
+### Advanced Tasks
+
+The `py-llm-core` library offers advanced capabilities to enhance the functionality of Large Language Models (LLMs). Below are some key features and examples to help you leverage these capabilities effectively.
+
+#### Using Tools (Function Calling)
+
+Enhance LLM responses by integrating external tools. Define a tool using a dataclass with a `__call__` method to implement the desired logic.
+
+
+Here's an example of retrieving one's public IP address:
 
 ```python
 import requests
 from decouple import config
 from dataclasses import dataclass
-
 from llm_core.llm import OpenAIChatModel
 
+@dataclass
+class PublicIPProvider:
+
+    def __call__(self):
+        url = "https://ipv4.jsonip.com"
+        response = requests.get(url).json()['ip']
+        return response
+
+providers = [PublicIPProvider]
+
+with OpenAIChatModel(name="gpt-4o-mini") as llm:
+    response = llm.ask(prompt="What's my IP ?", tools=providers)
+
+print(response.choices[0].message.content)
+```
+
+Here's an example of adding web search capabilities using the Brave Search API:
+
+```python
+import requests
+from decouple import config
+from dataclasses import dataclass
+from llm_core.llm import OpenAIChatModel
 
 @dataclass
 class WebSearchProvider:
@@ -199,37 +312,20 @@ class WebSearchProvider:
     def __call__(self):
         url = "https://api.search.brave.com/res/v1/web/search"
         headers = {"X-Subscription-Token": config("BRAVE_AI_API_KEY")}
-        response = requests.get(
-            url,
-            headers=headers,
-            params={
-                "q": self.query,
-                "extra_snippets": True
-            }
-        )
+        response = requests.get(url, headers=headers, params={"q": self.query})
         return response.json()["web"]["results"][0:5]
-
 
 providers = [WebSearchProvider]
 
 with OpenAIChatModel(name="gpt-4o-mini") as llm:
-    resp = llm.ask(
-        prompt="Who won the 400m men individual medley at the 2024 Olympics?",
-        tools=providers
-    )
+    response = llm.ask(prompt="Who won the 400m men individual medley at the 2024 Olympics?", tools=providers)
 
-print(resp.choices[0].message.content)
+print(response.choices[0].message.content)
 ```
 
+#### Combining Tools with Structured Output
 
-#### Using tools in conjunction with structured output
-
-Leveraging the structured output capabilities of PyLLMCore, you can combine both
-the use of tools the generation of an object.
-
-This means we can make the LLM use a tool to enrich its context and at the same time produce a structured output.
-
-Here's a simple example on how you can add computational capabilities:
+You can combine tool usage with structured output generation. This allows the LLM to use a tool and produce a structured response simultaneously. Here's an example of adding computational capabilities:
 
 ```python
 import hashlib
@@ -237,9 +333,7 @@ from enum import Enum
 from dataclasses import dataclass
 from llm_core.assistants import OpenAIAssistant
 
-
 HashFunction = Enum("HashFunction", ["sha512", "sha256", "md5"])
-
 
 @dataclass
 class HashProvider:
@@ -249,7 +343,6 @@ class HashProvider:
     def __call__(self):
         hash_fn = getattr(hashlib, self.hash_function.name)
         return hash_fn(self.content.encode('utf-8')).hexdigest()
-
 
 @dataclass
 class Hash:
@@ -266,9 +359,8 @@ class Hash:
             response = assistant.process(prompt=prompt)
             return response
 
-Hash.ask('Compute the sha256 for `py-llm-core`')
+Hash.ask('Compute the sha256 for the string `py-llm-core`')
 ```
-
 
 ## Context window management
 
@@ -348,17 +440,6 @@ def ask(prompt):
 
 ask('Cancel all my meetings for the week')
 ```
-
-## Note
-
-PyLLMCore v3.0.0 comes with breaking changes. The goal behind the v3 is to be able to take
-full advantages of LLMs as fast as possible (documentation takes 5 min to read).
-
-For developers using the 2.x versions, you may want to stick to the latest 2.8.15 version. However the 2.x branch won't be maintained (open an issue if you need help migrating your project).
-
-The latest version comes with major simplifications to be even easier to use.
-
-See the following quick start guide.
 
 
 ## Changelog
