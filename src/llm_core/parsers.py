@@ -12,6 +12,7 @@ from .llm import (
     MistralAIModel,
     OpenWeightsModel,
     AnthropicModel,
+    GoogleAIModel,
 )
 from .schema import to_json_schema, from_dict
 
@@ -113,3 +114,10 @@ class AnthropicParser(BaseParser):
     target_cls: Callable
     model: str = "claude-3-5-sonnet-20240620"
     model_cls: Callable = AnthropicModel
+
+
+@dataclass
+class GoogleAIParser(BaseParser):
+    target_cls: Callable
+    model: str = "gemini-1.5-flash"
+    model_cls: Callable = GoogleAIModel

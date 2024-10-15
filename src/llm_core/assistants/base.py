@@ -8,6 +8,7 @@ from ..llm import (
     MistralAIModel,
     OpenWeightsModel,
     AnthropicModel,
+    GoogleAIModel,
 )
 from ..parsers import (
     BaseParser,
@@ -15,6 +16,7 @@ from ..parsers import (
     OpenWeightsParser,
     MistralAIParser,
     AnthropicParser,
+    GoogleAIParser,
 )
 
 
@@ -81,3 +83,9 @@ class OpenWeightsAssistant(BaseAssistant, OpenWeightsParser):
 class AnthropicAssistant(BaseAssistant, AnthropicParser):
     model: str = "claude-3-5-sonnet-20240620"
     model_cls: Callable = AnthropicModel
+
+
+@dataclass
+class GoogleAIAssistant(BaseAssistant, GoogleAIParser):
+    model: str = "gemini-1.5-flash"
+    model_cls: Callable = GoogleAIModel

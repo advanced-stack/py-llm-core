@@ -16,6 +16,7 @@ os.environ["TIKTOKEN_CACHE_DIR"] = MODELS_CACHE_DIR
 MISTRAL_API_KEY = config("MISTRAL_API_KEY", default=None)
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default=None)
+GOOGLE_API_KEY = config("GOOGLE_API_KEY", default=None)
 
 AZURE_OPENAI_API_KEY = config("AZURE_OPENAI_API_KEY", default=None)
 AZURE_OPENAI_ENDPOINT = config("AZURE_OPENAI_ENDPOINT", default=None)

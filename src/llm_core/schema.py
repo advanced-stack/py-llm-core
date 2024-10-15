@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 import json
-from typing import Union, List, Dict, Set, Tuple, FrozenSet
-from typing import _GenericAlias as GenericAlias
+import sys
+import typing
+import types
 
 from enum import Enum
 from functools import reduce
+from textwrap import dedent, indent
+from typing import Union, List, Dict, Set, Tuple, FrozenSet
 from dataclasses import (
     dataclass,
     fields,
@@ -12,8 +15,17 @@ from dataclasses import (
     is_dataclass,
     MISSING,
 )
-from textwrap import dedent, indent
+
 from llama_cpp.llama_grammar import LlamaGrammar
+
+
+def is_generic_alias(type):
+    if sys.version_info >= (3, 9):
+        return isinstance(type, types.GenericAlias) or isinstance(
+            type, typing._GenericAlias
+        )
+    else:
+        return isinstance(type, typing._GenericAlias)
 
 
 def convert_native_container_type(container_type, items_type):
@@ -64,7 +76,7 @@ def convert_complex_field_type(field_type):
         ):
             return convert_union(field_type)
 
-        elif isinstance(field_type, GenericAlias):
+        elif is_generic_alias(field_type):
             return convert_generic_alias(field_type)
 
         elif issubclass(field_type, Enum):
