@@ -3,6 +3,7 @@ from .base import (
     OpenWeightsAssistant,
     MistralAIAssistant,
     AnthropicAssistant,
+    GoogleAIAssistant,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "OpenWeightsAssistant",
     "MistralAIAssistant",
     "AnthropicAssistant",
+    "GoogleAIAssistant",
 ]

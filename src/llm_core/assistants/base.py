@@ -5,6 +5,7 @@ from typing import Callable
 
 from ..llm import (
     OpenAIChatModel,
+    AzureOpenAIChatModel,
     MistralAIModel,
     OpenWeightsModel,
     AnthropicModel,
@@ -13,6 +14,7 @@ from ..llm import (
 from ..parsers import (
     BaseParser,
     OpenAIParser,
+    AzureOpenAIParser,
     OpenWeightsParser,
     MistralAIParser,
     AnthropicParser,
@@ -65,6 +67,12 @@ class BaseAssistant(BaseParser):
 class OpenAIAssistant(BaseAssistant, OpenAIParser):
     model: str = "gpt-4o-mini"
     model_cls: Callable = OpenAIChatModel
+
+
+@dataclass
+class AzureOpenAIAssistant(BaseAssistant, AzureOpenAIParser):
+    model: str = "gpt-4o-mini"
+    model_cls: Callable = AzureOpenAIChatModel
 
 
 @dataclass

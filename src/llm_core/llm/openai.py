@@ -37,7 +37,7 @@ def create_openai_completion(
 ):
     additional_kwargs = {}
 
-    if tools:
+    if tools and model != "gpt-4":
         additional_kwargs.update({"parallel_tool_calls": False})
 
     completion = llm._client.chat.completions.create(

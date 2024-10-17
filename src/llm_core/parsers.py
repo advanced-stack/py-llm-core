@@ -13,6 +13,7 @@ from .llm import (
     OpenWeightsModel,
     AnthropicModel,
     GoogleAIModel,
+    AzureOpenAIChatModel,
 )
 from .schema import to_json_schema, from_dict
 
@@ -93,6 +94,13 @@ class OpenAIParser(BaseParser):
     target_cls: Callable
     model: str = "gpt-4o-mini"
     model_cls: Callable = OpenAIChatModel
+
+
+@dataclass
+class AzureOpenAIParser(BaseParser):
+    target_cls: Callable
+    model: str = "gpt-4o-mini"
+    model_cls: Callable = AzureOpenAIChatModel
 
 
 @dataclass
