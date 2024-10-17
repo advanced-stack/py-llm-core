@@ -17,11 +17,18 @@ def load_openai_client(llm, **kwargs):
 
 
 def load_azure_openai_client(llm, **kwargs):
+    client_kwargs = {}
+    client_kwargs.update(kwargs)
+
+    api_key = client_kwargs.pop("api_key", AZURE_OPENAI_API_KEY)
+    api_version = client_kwargs.pop("api_version", AZURE_OPENAI_API_VERSION)
+    azure_endpoint = client_kwargs.pop("azure_endpoint", AZURE_OPENAI_ENDPOINT)
+
     client = AzureOpenAI(
-        api_key=AZURE_OPENAI_API_KEY,
-        api_version=AZURE_OPENAI_API_VERSION,
-        azure_endpoint=AZURE_OPENAI_ENDPOINT,
-        **kwargs,
+        api_key=api_key,
+        api_version=api_version,
+        azure_endpoint=azure_endpoint,
+        **client_kwargs,
     )
     return client
 

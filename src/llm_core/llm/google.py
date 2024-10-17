@@ -61,12 +61,23 @@ def strip_titles(schema):
 
 
 def load_google_ai_client(llm, **kwargs):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{llm.name}:generateContent"
+    client_kwargs = {}
+    client_kwargs.update(kwargs)
+
+    api_key = client_kwargs.pop("api_key", GOOGLE_API_KEY)
+    base_url = client_kwargs.pop(
+        "base_url", "https://generativelanguage.googleapis.com/v1beta/models/"
+    )
+    endpoint = client_kwargs.pop("endpoint", ":generateContent")
+    headers = client_kwargs.pop(
+        "headers", {"Content-Type": "application/json"}
+    )
+
     return requests.Request(
         "POST",
-        url,
-        headers={"Content-Type": "application/json"},
-        params={"key": GOOGLE_API_KEY},
+        f"{base_url}{llm.name}{endpoint}",
+        headers=headers,
+        params={"key": api_key},
     )
 
 

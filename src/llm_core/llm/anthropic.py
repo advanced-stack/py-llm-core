@@ -9,7 +9,12 @@ from ..settings import ANTHROPIC_API_KEY
 
 
 def load_anthropic_client(llm, **kwargs):
-    client = Anthropic(api_key=ANTHROPIC_API_KEY, **kwargs)
+    client_kwargs = {}
+    client_kwargs.update(kwargs)
+
+    api_key = client_kwargs.pop("api_key", ANTHROPIC_API_KEY)
+
+    client = Anthropic(api_key=api_key, **client_kwargs)
     return client
 
 

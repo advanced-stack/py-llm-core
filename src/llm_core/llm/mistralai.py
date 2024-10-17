@@ -8,7 +8,11 @@ from ..settings import MISTRAL_API_KEY
 
 
 def load_mistralai_client(llm, **kwargs):
-    client = Mistral(api_key=MISTRAL_API_KEY, **kwargs)
+    client_kwargs = {}
+    client_kwargs.update(kwargs)
+
+    api_key = client_kwargs.pop("api_key", MISTRAL_API_KEY)
+    client = Mistral(api_key=api_key, **client_kwargs)
     return client
 
 
