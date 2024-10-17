@@ -444,6 +444,8 @@ ask('Cancel all my meetings for the week')
 
 ## Changelog
 
+- 3.4.13: Disabled parallel_tool_calls (improved)
+- 3.4.12: Fixed export of AzureOpenAIAssistant
 - 3.4.11: Updated loader_kwargs override
 - 3.4.10: Added helpers for Azure OpenAI models
 - 3.4.9: Added suppport for Google AI Gemini

@@ -1,5 +1,6 @@
 from .base import (
     OpenAIAssistant,
+    AzureOpenAIAssistant,
     OpenWeightsAssistant,
     MistralAIAssistant,
     AnthropicAssistant,
@@ -8,6 +9,7 @@ from .base import (
 
 __all__ = [
     "OpenAIAssistant",
+    "AzureOpenAIAssistant",
     "OpenWeightsAssistant",
     "MistralAIAssistant",
     "AnthropicAssistant",
