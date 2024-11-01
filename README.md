@@ -171,6 +171,41 @@ with OpenAIParser(BookCollection) as parser:
         print(book)
 ```
 
+Now, you can parse images when using a compatible model (tested with OpenAI `gpt-4o-mini` and Mistral `pixtral-12b-2409`)
+
+```python
+from dataclasses import dataclass
+from llm_core.parsers import OpenAIParser
+from llm_core.parsers import MistralAIParser
+from llm_core.loaders import load_image
+
+
+@dataclass
+class Receipt:
+    title: str
+    expense_category: str
+    tax_amount: float
+    total_amount_without_tax: float
+    total_amount_with_tax: float
+
+
+image_b64 = load_image(
+    "/path/to/a/receipt.jpg"
+)
+
+with OpenAIParser(Receipt) as parser:
+    receipt = parser.parse(image_b64=image_b64)
+
+print(receipt)
+
+#: With Mistral Pixtral
+
+with MistralAIParser(Receipt, model="pixtral-12b-2409") as parser:
+    receipt = parser.parse(image_b64=image_b64)
+
+print(receipt)
+```
+
 #### Advanced Example with OpenAIParser
 
 For more complex parsing tasks, you can define a more detailed schema:
@@ -209,32 +244,32 @@ with OpenAIParser(BookCollection) as parser:
 You can easily switch between different parsers to use models from other providers:
 
 - **MistralAIParser**: For MistralAI models.
-  ```python
-  from llm_core.parsers import MistralAIParser
-  with MistralAIParser(BookCollection) as parser:
-      books_collection = parser.parse(text)
-  ```
+```python
+from llm_core.parsers import MistralAIParser
+with MistralAIParser(BookCollection) as parser:
+  books_collection = parser.parse(text)
+```
 
 - **OpenWeightsParser**: For open-weights models.
-  ```python
-  from llm_core.parsers import OpenWeightsParser
-  with OpenWeightsParser(BookCollection) as parser:
-      books_collection = parser.parse(text)
-  ```
+```python
+from llm_core.parsers import OpenWeightsParser
+with OpenWeightsParser(BookCollection) as parser:
+  books_collection = parser.parse(text)
+```
 
 - **AnthropicParser**: For Anthropic models.
-  ```python
-  from llm_core.parsers import AnthropicParser
-  with AnthropicParser(BookCollection) as parser:
-      books_collection = parser.parse(text)
-  ```
+```python
+from llm_core.parsers import AnthropicParser
+with AnthropicParser(BookCollection) as parser:
+  books_collection = parser.parse(text)
+```
 
 - **GoogleAIParser**: For Google AI models.
-  ```python
-  from llm_core.parsers import GoogleAIParser
-  with GoogleAIParser(BookCollection) as parser:
-      books_collection = parser.parse(text)
-  ```
+```python
+from llm_core.parsers import GoogleAIParser
+with GoogleAIParser(BookCollection) as parser:
+  books_collection = parser.parse(text)
+```
 
 ### Working with Open Weights Models
 
@@ -444,6 +479,7 @@ ask('Cancel all my meetings for the week')
 
 ## Changelog
 
+- 3.5.0: Added Vision support
 - 3.4.13: Disabled parallel_tool_calls (improved)
 - 3.4.12: Fixed export of AzureOpenAIAssistant
 - 3.4.11: Updated loader_kwargs override

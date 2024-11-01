@@ -55,7 +55,7 @@ class BaseParser:
         attributes = dirtyjson.loads(json_str)
         return from_dict(self.target_cls, attributes)
 
-    def parse(self, text):
+    def parse(self, text=None, image_b64=None):
         prompt = textwrap.dedent(
             """
             Carefully extract and parse all information available from the
@@ -68,7 +68,24 @@ class BaseParser:
                 formatted_schema=json.dumps(self.target_json_schema, indent=2)
             )
         )
-        history = [{"role": "user", "content": text}]
+
+        content = []
+
+        if text:
+            content.append({"type": "text", "text": text})
+
+        if image_b64:
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_b64}",
+                        "detail": "high",
+                    },
+                }
+            )
+
+        history = [{"role": "user", "content": content}]
 
         completion = self.llm.ask(
             prompt, history, schema=self.target_json_schema

@@ -68,6 +68,7 @@ class LLMBase:
         temperature=0,
         tools=None,
         raw_tool_results=False,
+        image_b64=None,
     ):
         self.sanitize_prompt(prompt=prompt, history=history, schema=schema)
 
@@ -84,6 +85,21 @@ class LLMBase:
             messages += history
 
         messages.append({"role": "user", "content": prompt})
+
+        if image_b64:
+            image_message = {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_b64}"
+                        },
+                    },
+                ],
+            }
+            messages.append(image_message)
 
         if tools:
             tool_selector = make_selection_tool(tools)
@@ -195,10 +211,10 @@ class LLMBase:
         if schema:
             schema_prompt = json.dumps(schema)
 
+        #: todo : restore size check
         complete_prompt = [
             self.system_prompt,
             prompt,
-            str(history) if history else "",
             schema_prompt,
         ]
 
