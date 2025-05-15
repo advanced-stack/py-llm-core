@@ -77,7 +77,7 @@ class OpenAIChatModel(LLMBase):
 
     def release_model(self):
         del self._client
-
+        
     @property
     def ctx_size(self):
         ctx_size_map = {
@@ -96,14 +96,35 @@ class OpenAIChatModel(LLMBase):
             "gpt-4o": 128_000,
             "gpt-4o-mini-2024-07-18": 128_000,
             "gpt-4o-mini": 128_000,
+            "gpt-4.1": 1_000_000,
+            "gpt-4.1-mini": 1_000_000,
+            "gpt-4.1-nano": 1_000_000,
         }
+        return ctx_size_map.get(self.name, 128_000)
 
-        if self.name in ctx_size_map:
-            return ctx_size_map[self.name]
-        else:
-            #: we don't know the model, so we'll default
-            #: to a large context window of 128k tokens
-            return 128_000
+    @property
+    def output_ctx_size(self):
+        output_estimates = {
+            "gpt-3.5-turbo": 4_096,
+            "gpt-3.5-turbo-0613": 4_096,
+            "gpt-3.5-turbo-16k": 16_384,
+            "gpt-3.5-turbo-16k-0613": 16_384,
+            "gpt-35-turbo": 4_096,
+            "gpt-35-turbo-16k": 16_384,
+            "gpt-4": 8_192,
+            "gpt-4-0613": 8_192,
+            "gpt-4-32k": 32_768,
+            "gpt-4-1106-preview": 8_192,
+            "gpt-4o-2024-05-13": 16_384,
+            "gpt-4o-2024-08-06": 16_384,
+            "gpt-4o": 16_384,
+            "gpt-4o-mini-2024-07-18": 16_384,
+            "gpt-4o-mini": 16_384,
+            "gpt-4.1": 32_768,
+            "gpt-4.1-mini": 32_768,
+            "gpt-4.1-nano": 32_768,
+        }
+        return output_estimates.get(self.name, 4_096)
 
 
 @dataclass
