@@ -92,9 +92,11 @@ class WeatherTool:
 # Assistant's Target Dataclass (for output and prompting)
 @dataclass
 class WeatherReport:
-    system_prompt: str = field(default="You are a helpful weather assistant. Use tools to find weather information.", init=False, repr=False)
-    prompt: str = field(default="What's the weather like in {city_name}?", init=False, repr=False)
+    # Prompts are class attributes without type hints
+    system_prompt = "You are a helpful weather assistant. Use tools to find weather information."
+    prompt = "What's the weather like in {city_name}?"
 
+    # Fields for structured output
     city: str
     temperature: str # e.g., "20 degrees celsius"
     summary: str
@@ -107,6 +109,25 @@ with OpenAIAssistant(WeatherReport, tools=available_tools) as assistant:
     print(f"City: {report.city}")
     print(f"Temperature: {report.temperature}")
     print(f"Summary: {report.summary}")
+```
+
+**Note on Defining Prompts:**
+
+When using a dataclass as `target_cls` for an assistant, the `system_prompt` and `prompt` attributes that provide templates should be defined as simple string class attributes directly within the dataclass, **without type hints**.
+
+For example:
+```python
+@dataclass
+class MyAssistantOutput:
+    # Prompts are class attributes without type hints
+    system_prompt = "This is the system message."
+    prompt = "Process this: {user_input}"
+    
+    # Other fields for structured output (these should have type hints)
+    processed_data: str 
+```
+
+Using `dataclasses.field` or including type hints (e.g., `system_prompt: str = "..."`) for these specific prompt attributes in the `target_cls` is incorrect for the purpose of providing templates to the `BaseAssistant`. These attributes are read as class-level variables from the `target_cls`, and the current implementation expects them without type annotations.
 
 # Expected output might be (LLM dependent):
 # City: Paris
