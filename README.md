@@ -384,22 +384,28 @@ You can combine tool usage with structured output generation. This allows the LL
 import hashlib
 from dataclasses import dataclass, field
 from llm_core.assistants import OpenAIAssistant
+from enum import Enum
+
+class HashAlgorithm(Enum):
+    SHA256 = "sha256"
+    MD5 = "md5"
 
 @dataclass
 class HashProvider:
     """Computes a hash for the given content using the specified algorithm."""
-    hash_algorithm: str # e.g., "sha256", "md5"
+    hash_algorithm: HashAlgorithm # e.g., "sha256", "md5"
     content: str
 
     def __call__(self):
-        hash_fn = getattr(hashlib, self.hash_algorithm)
+        # Ensure you access the enum's value for hashlib
+        hash_fn = getattr(hashlib, self.hash_algorithm.value)
         return hash_fn(self.content.encode('utf-8')).hexdigest()
 
 @dataclass
 class HashResult:
     """Processes a prompt to hash content and returns the result."""
-    system_prompt: str = field(default="You are an assistant that can hash content using provided tools.", init=False, repr=False)
-    user_prompt: str = field(default="Hash the content '{content_to_hash}' using the {algorithm} algorithm.", init=False, repr=False)
+    system_prompt = "You are an assistant that can hash content using provided tools."
+    user_prompt = "Hash the content '{content_to_hash}' using the {algorithm} algorithm."
 
     original_content: str
     algorithm_used: str
@@ -408,7 +414,7 @@ class HashResult:
 # Example usage:
 prompt_details = {
     "content_to_hash": "py-llm-core",
-    "algorithm": "sha256"
+    "algorithm": HashAlgorithm.SHA256  # Use the Enum here
 }
 
 with OpenAIAssistant(target_cls=HashResult, tools=[HashProvider]) as assistant:
