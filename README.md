@@ -131,7 +131,25 @@ PyLLMCore is versatile and can be used in various scenarios involving Large Lang
 
 Explore the Jupyter notebook in the `/notebooks/` directory for executable examples to get started quickly.
 
+## Configuration
+
+PyLLMCore uses environment variables for configuration, especially for API keys and model caching.
+
+**API Keys:**
+*   **OpenAI:** `OPENAI_API_KEY`
+*   **Azure OpenAI:** `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_VERSION`
+*   **MistralAI:** `MISTRAL_API_KEY`
+*   **Anthropic:** `ANTHROPIC_API_KEY`
+*   **Google AI:** `GOOGLE_API_KEY`
+*   **Brave Search (for WebSearchProvider example):** `BRAVE_AI_API_KEY` (Note: This is for a specific example tool, not core library functionality)
+
+**Model Cache Directory (for OpenWeightsModel):**
+*   `MODELS_CACHE_DIR`: Overrides the default model cache directory (`~/.cache/py-llm-core/models`).
+
+Ensure these are set in your environment before running applications that use the respective services.
+
 ## Documentation
+For a more detailed conceptual overview and API reference, please see our full documentation in the [docs](./docs/index.md) directory.
 
 ### Parsing with PyLLMCore
 
@@ -364,19 +382,24 @@ You can combine tool usage with structured output generation. This allows the LL
 
 ```python
 import hashlib
-from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from llm_core.assistants import OpenAIAssistant
+from enum import Enum
 
-HashFunction = Enum("HashFunction", ["sha512", "sha256", "md5"])
+class HashAlgorithm(Enum):
+    SHA512 = "sha512"
+    SHA256 = "sha256"
+    MD5 = "md5"
 
 @dataclass
 class HashProvider:
-    hash_function: HashFunction
+    """Computes a hash for the given content using the specified algorithm."""
+    hash_algorithm: HashAlgorithm
     content: str
 
     def __call__(self):
-        hash_fn = getattr(hashlib, self.hash_function.name)
+        # Ensure you access the enum's value for hashlib
+        hash_fn = getattr(hashlib, self.hash_algorithm.value)
         return hash_fn(self.content.encode('utf-8')).hexdigest()
 
 @dataclass
@@ -385,7 +408,7 @@ class Hash:
     prompt = "{prompt}"
 
     hashed_content: str
-    hash_algorithm: HashFunction
+    hash_algorithm: HashAlgorithm
     hash_value: str
 
     @classmethod
@@ -396,6 +419,7 @@ class Hash:
 
 Hash.ask('Compute the sha256 for the string `py-llm-core`')
 ```
+For more details on how tools and assistants interact, including more complex scenarios, please refer to the [Assistants API documentation](./docs/api/assistants.md).
 
 ## Context window management
 
@@ -476,6 +500,15 @@ def ask(prompt):
 ask('Cancel all my meetings for the week')
 ```
 
+
+## Error Handling and Robustness
+
+Interacting with LLMs can sometimes result in errors or unexpected outputs. Here are a few points:
+
+*   **API Errors:** Ensure your API keys are correctly set and have the necessary permissions/credits for the models you are trying to use. The library will typically raise exceptions passed up from the underlying HTTP client or LLM SDK.
+*   **Model Not Found:** If using `OpenWeightsModel`, ensure the model file is correctly named and placed in the `MODELS_CACHE_DIR`. For API models, double-check the model name string.
+*   **Parsing LLM Output:** LLMs can sometimes produce JSON that is slightly malformed (e.g., with trailing commas, comments). PyLLMCore uses `dirtyjson` for deserializing JSON responses from LLMs in its Parsers and Assistants. This provides a degree of robustness against common LLM formatting quirks. However, if the output is too divergent from the expected schema, parsing errors can still occur. In such cases, refining your prompt or the `target_cls` schema might be necessary.
+*   `OverflowError`: If a prompt (including history, system prompt, and schema information) exceeds the context window size of the model, `LLMBase.sanitize_prompt` will raise an `OverflowError`. Use the `TokenSplitter` for handling large texts.
 
 ## Changelog
 
