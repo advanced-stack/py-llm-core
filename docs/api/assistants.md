@@ -94,7 +94,7 @@ class WeatherTool:
 class WeatherReport:
     # Prompts are class attributes without type hints
     system_prompt = "You are a helpful weather assistant. Use tools to find weather information."
-    prompt = "What's the weather like in {city_name}?"
+    prompt = "{prompt}"
 
     # Fields for structured output
     city: str
@@ -105,7 +105,7 @@ class WeatherReport:
 available_tools = [WeatherTool]
 
 with OpenAIAssistant(WeatherReport, tools=available_tools) as assistant:
-    report = assistant.process(city_name="Paris")
+    report = assistant.process(prompt="What's the weather like in Paris?")
     print(f"City: {report.city}")
     print(f"Temperature: {report.temperature}")
     print(f"Summary: {report.summary}")

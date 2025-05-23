@@ -387,13 +387,14 @@ from llm_core.assistants import OpenAIAssistant
 from enum import Enum
 
 class HashAlgorithm(Enum):
+    SHA512 = "sha512"
     SHA256 = "sha256"
     MD5 = "md5"
 
 @dataclass
 class HashProvider:
     """Computes a hash for the given content using the specified algorithm."""
-    hash_algorithm: HashAlgorithm # e.g., "sha256", "md5"
+    hash_algorithm: HashAlgorithm
     content: str
 
     def __call__(self):
@@ -402,29 +403,21 @@ class HashProvider:
         return hash_fn(self.content.encode('utf-8')).hexdigest()
 
 @dataclass
-class HashResult:
-    """Processes a prompt to hash content and returns the result."""
-    system_prompt = "You are an assistant that can hash content using provided tools."
-    user_prompt = "Hash the content '{content_to_hash}' using the {algorithm} algorithm."
+class Hash:
+    system_prompt = "You are a helpful assistant"
+    prompt = "{prompt}"
 
-    original_content: str
-    algorithm_used: str
-    computed_hash: str
+    hashed_content: str
+    hash_algorithm: HashAlgorithm
+    hash_value: str
 
-# Example usage:
-prompt_details = {
-    "content_to_hash": "py-llm-core",
-    "algorithm": HashAlgorithm.SHA256  # Use the Enum here
-}
+    @classmethod
+    def ask(cls, prompt):
+        with OpenAIAssistant(cls, tools=[HashProvider]) as assistant:
+            response = assistant.process(prompt=prompt)
+            return response
 
-with OpenAIAssistant(target_cls=HashResult, tools=[HashProvider]) as assistant:
-    # The assistant will use the user_prompt from HashResult, formatted with prompt_details.
-    # It will identify that HashProvider is needed, populate its arguments from the prompt,
-    # call the tool, and then structure the final response into HashResult.
-    result = assistant.process(**prompt_details)
-
-print(f"Original: {result.original_content}, Algorithm: {result.algorithm_used}, Hash: {result.computed_hash}")
-# Expected (simplified): Original: py-llm-core, Algorithm: sha256, Hash: <sha256_hash_value>
+Hash.ask('Compute the sha256 for the string `py-llm-core`')
 ```
 For more details on how tools and assistants interact, including more complex scenarios, please refer to the [Assistants API documentation](./docs/api/assistants.md).
 
