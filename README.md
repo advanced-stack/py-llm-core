@@ -1,5 +1,10 @@
 # PyLLMCore
 
+## Update - 06/25/2026
+
+This repository is now read-only and considered legacy.
+Best replacements are `msgspec` or `pydantic`.
+
 ## Overview
 
 PyLLMCore is a lightweight Python library designed to provide a simple and efficient interface for interacting with Large Language Models (LLMs). It supports a variety of models, including:
